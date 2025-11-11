@@ -21,6 +21,7 @@ dependencies = [
     "openai>=2.7.1",
     "pdfplumber>=0.11.7",
     "pymupdf>=1.26.6",
+    "ragas>=0.3.8",
     "requests>=2.32.5",
     "rich>=14.2.0",
 ]
@@ -32,6 +33,3 @@ dev = [
     "python-dotenv>=1.2.1",
 ]
 
-[tool.pyright]
-typeCheckingMode = "strict"
-pythonVersion = "3.10"
