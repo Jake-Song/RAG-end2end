@@ -13,6 +13,7 @@ wheels/
 data
 images
 results
+faiss_index
 
 # env
 .env
