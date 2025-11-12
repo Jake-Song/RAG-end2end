@@ -12,6 +12,7 @@ wheels/
 # data
 data
 images
+outputs
 results
 faiss_index
 

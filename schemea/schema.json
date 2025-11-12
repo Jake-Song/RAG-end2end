@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RAG Synthetic QA Example",
+  "type": "object",
+  "required": [
+    "id",
+    "query",
+    "answers",
+    "evidence",
+    "negatives",
+    "tags"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique ID"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "en",
+        "ko"
+      ],
+      "description": "Language of query/answers"
+    },
+    "query": {
+      "type": "string",
+      "description": "User-style query"
+    },
+    "query_paraphrases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional paraphrases"
+    },
+    "answers": {
+      "type": "array",
+      "description": "One or more acceptable answers",
+      "items": {
+        "type": "string"
+      }
+    },
+    "answer_type": {
+      "type": "string",
+      "enum": [
+        "short_fact",
+        "long_form",
+        "list",
+        "bool",
+        "date",
+        "number"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "description": "Gold passages with character spans and doc IDs",
+      "items": {
+        "type": "object",
+        "required": [
+          "doc_id",
+          "passage",
+          "char_span"
+        ],
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "char_span": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "passage": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "Inline citation text rendered to user"
+          }
+        }
+      }
+    },
+    "hop_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Doc IDs that must be chained for multi-hop"
+    },
+    "negatives": {
+      "type": "array",
+      "description": "Hard negative passages: same entities/keywords but do not answer the query",
+      "items": {
+        "type": "object",
+        "required": [
+          "doc_id",
+          "passage"
+        ],
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "passage": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this is a negative (confuser, outdated, partial)"
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Formatting constraints e.g., keep units, output Korean polite tone"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Difficulty or domain tags"
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "source_cutoff": {
+          "type": "string",
+          "description": "Ensure sources are before this date to avoid leakage"
+        },
+        "generator_model": {
+          "type": "string"
+        },
+        "verifier_model": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
