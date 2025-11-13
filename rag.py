@@ -6,6 +6,7 @@ from langchain.schema import Document
 import pickle
 
 from scripts.retriver import create_retriever, load_retriever
+from config import output_path_prefix
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -24,7 +25,7 @@ class GraphState(TypedDict):
     documents: Annotated[list[Document], "Documents"]  # 검색된 문서
     page_number: Annotated[list[int], "Page Number"]  # 페이지 번호
 
-with open("outputs/split_documents.pkl", "rb") as f:
+with open(f"outputs/{output_path_prefix}_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
 ensemble_retriever = load_retriever(split_documents)
@@ -71,7 +72,7 @@ def llm_answer(state: GraphState) -> GraphState:
     # 생성된 답변, (유저의 질문, 답변) 메시지를 상태에 저장합니다.
     return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
 
-with open("outputs/split_documents.pkl", "rb") as f:
+with open(f"outputs/{output_path_prefix}_split_documents.pkl", "rb") as f:
     split_documents = pickle.load(f)
 
 # embeddings = OpenAIEmbeddings()
@@ -111,7 +112,11 @@ def rag_bot_invoke(question: str) -> dict:
     
 
 if __name__ == "__main__":
-    question = "what are risks and challenges of Korea in global economy?"
+    import sys
+    question = sys.argv[1] if len(sys.argv) > 1 else "What are the risks and challenges of Korea in global economy?"
     result = rag_bot_invoke(question)
+    print(result['answer'], "\n")
+    print(result['documents'], "\n")
+    print(result['page_number'], "\n")
   
     

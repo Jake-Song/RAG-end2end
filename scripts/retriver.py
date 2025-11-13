@@ -1,10 +1,9 @@
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
-from langchain.schema import HumanMessage
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
 import pickle
+from config import output_path_prefix
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -23,11 +22,11 @@ def create_retriever(split_documents, embeddings):
 
 def save_retriever(split_documents, embeddings):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
-    vectorstore.save_local("faiss_index")
+    vectorstore.save_local(f"{output_path_prefix}_faiss_index")
 
 def load_retriever(split_documents):
     vectorstore = FAISS.load_local(
-        "faiss_index", 
+        f"{output_path_prefix}_faiss_index", 
         OpenAIEmbeddings(),
         allow_dangerous_deserialization=True  # needed in newer versions
     )
@@ -42,7 +41,7 @@ def load_retriever(split_documents):
     return ensemble_retriever
 
 def main():
-    with open("outputs/split_documents.pkl", "rb") as f:
+    with open(f"outputs/{output_path_prefix}_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
     embeddings = OpenAIEmbeddings()    

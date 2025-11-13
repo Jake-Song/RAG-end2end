@@ -5,6 +5,8 @@ import pickle
 from dotenv import load_dotenv
 load_dotenv()
 
+from config import output_path_prefix
+
 def prepare_image_summary(docs: list) -> list:
     messages_for_image = []
 
@@ -133,15 +135,15 @@ def save_text(split_documents: list) -> None:
     # 청킹 테스트 문서
     delimiter = "\n\n\n" + ("---" * 50) + "\n\n\n"
     split_documents_text = delimiter.join([doc.page_content for doc in split_documents])
-    with open("outputs/split_documents.txt", "w", encoding="utf-8") as f:
+    with open(f"outputs/{output_path_prefix}_split_documents.txt", "w", encoding="utf-8") as f:
         f.write(split_documents_text)
 
 def save_split_document(split_documents: list) -> None:
-    with open('outputs/split_documents.pkl', 'wb') as f:
+    with open(f'outputs/{output_path_prefix}_split_documents.pkl', 'wb') as f:
         pickle.dump(split_documents, f)
 
 def main():
-    with open("outputs/docs.pkl", "rb") as f:
+    with open(f"outputs/{output_path_prefix}_docs.pkl", "rb") as f:
         docs = pickle.load(f)
 
     llm = ChatOpenAI(model_name="gpt-5-nano", temperature=0.0)

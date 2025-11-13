@@ -14,7 +14,7 @@ data
 images
 outputs
 results
-faiss_index
+*faiss_index
 
 # env
 .env

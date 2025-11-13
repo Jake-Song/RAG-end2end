@@ -10,7 +10,7 @@ from langchain_core.documents import Document
 from dotenv import load_dotenv
 load_dotenv()
 
-from config import input_file, output_prefix
+from config import input_file, image_output_path_prefix, output_path_prefix
 
 def get_json_arr() -> list:
     # Find all shorter PDFs related to input_file
@@ -79,7 +79,7 @@ def create_docs(json_data_arr) -> list:
 def extract_images(docs) -> list:
     for idx, doc in enumerate(docs):
         if doc.metadata["category"] == "figure" or doc.metadata["category"] == "chart" or doc.metadata["category"] == "table":
-            output_file = f"{output_prefix}_{doc.metadata['category']}_{idx}.png"
+            output_file = f"{image_output_path_prefix}_{doc.metadata['category']}_{idx}.png"
             output_file_path = output_file[1:]
             
             soup = BeautifulSoup(doc.metadata['html'], 'html.parser')
@@ -134,7 +134,7 @@ def remove_metadata(objects) -> list:
     return objects
 
 def save_docs(docs) -> None:
-    with open('outputs/docs.pkl', 'wb') as f:
+    with open(f'outputs/{output_path_prefix}_docs.pkl', 'wb') as f:
         pickle.dump(docs, f)
 
 def save_markdown(docs) -> None:
@@ -142,7 +142,7 @@ def save_markdown(docs) -> None:
     for doc in docs:
         arr.append(doc.page_content)
     markdown = "\n\n".join(arr)
-    with open('outputs/markdown.md', 'w') as f:
+    with open(f'outputs/{output_path_prefix}_markdown.md', 'w') as f:
         f.write(markdown)
 
 def main():
