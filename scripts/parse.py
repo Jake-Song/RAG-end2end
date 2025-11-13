@@ -1,0 +1,174 @@
+import os
+from glob import glob
+import json
+import base64
+import pickle
+from markdownify import markdownify as md
+from bs4 import BeautifulSoup
+from langchain_core.documents import Document
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from config import input_file, output_prefix
+
+def get_json_arr() -> list:
+    # Find all shorter PDFs related to input_file
+    short_input_files = glob(os.path.splitext(input_file)[0] + "_*.pdf")
+    
+    arr = []
+    for short_input_file in sorted(short_input_files):
+        short_output_file = os.path.splitext(short_input_file)[0] + ".json"
+     
+        with open(short_output_file, "r") as f:
+            arr.append(json.load(f))
+
+    return arr
+
+def flatten_json(json_data_arr) -> list:
+    
+    last_id, last_page = None, None
+    for data in json_data_arr:
+        
+        for idx, element in enumerate(data['elements']):
+            
+            if last_id is not None and last_page is not None:
+                start_id = last_id + 1 # id는 0부터 시작하기 때문에 다음 시작 아이디는 1을 더하고 시작
+                element['id'] = start_id + element['id'] 
+                element['page'] = last_page + element['page']
+
+            if idx == len(data['elements']) - 1:
+                last_id = element['id']
+                last_page = element['page']
+
+    return json_data_arr
+
+def validate_json(json_data_arr):
+         
+    # 유효성 검사
+    for idx1, data in enumerate(json_data_arr):
+        for idx2, element in enumerate(data['elements']):
+            if idx2 == 0:
+                print("start id", element['id'])
+                print("start page", element['page'],"\n")
+            if idx2 == len(data['elements']) - 1:
+                print("end id", element['id'])  
+                print("end page", element['page'],"\n")       
+                
+def create_docs(json_data_arr) -> list:
+    docs = []
+    for data in json_data_arr:
+        doc = []   
+        for element in data['elements']:        
+            metadata = {
+                "id": element.get("id"),
+                "page": element.get("page"),
+                "category": element.get("category"),
+                "html": element.get("content", {}).get("html"),
+                "base64_encoding": element.get("base64_encoding", None),
+                "image_id": [],
+                "image_path": [],
+                "text_summary": [],
+                "image_summary": []                
+            }
+            doc.append(Document(page_content="", metadata=metadata))
+        docs.extend(doc)
+
+    return docs
+
+def extract_images(docs) -> list:
+    for idx, doc in enumerate(docs):
+        if doc.metadata["category"] == "figure" or doc.metadata["category"] == "chart" or doc.metadata["category"] == "table":
+            output_file = f"{output_prefix}_{doc.metadata['category']}_{idx}.png"
+            output_file_path = output_file[1:]
+            
+            soup = BeautifulSoup(doc.metadata['html'], 'html.parser')
+            if doc.metadata['category'] == 'figure':
+                soup.find('img')['src'] = output_file
+                replaced_html = str(soup)
+                image_path = output_file
+                doc.metadata['html'] = replaced_html
+                
+            elif doc.metadata['category'] == 'chart':
+                soup.find('img')['src'] = output_file
+                replaced_html = str(soup)
+                image_path = output_file
+                doc.metadata['html'] = replaced_html
+                
+            elif doc.metadata['category'] == 'table':
+                img = soup.new_tag("img", src=output_file)
+                soup.insert(0, img)
+                replaced_html = str(soup)
+                image_path = output_file
+                doc.metadata['html'] = replaced_html
+                
+            doc.metadata['image_id'].append(doc.metadata['id'])
+            doc.metadata['image_path'].append(image_path)
+            
+            with open (output_file_path, 'wb') as fh:
+                fh.write(base64.decodebytes(str.encode(doc.metadata["base64_encoding"])))
+
+        doc.page_content = md(doc.metadata['html'])
+
+    return docs
+
+def merge_docs(docs) -> list:
+    merged = {}
+    for doc in docs:
+        if doc.metadata['image_path'] is not []:
+            bucket = merged.setdefault(doc.metadata['page'], doc.model_copy())  # or clone
+            bucket.page_content += "\n\n" + doc.page_content
+            bucket.metadata['image_id'].extend(doc.metadata['image_id'])
+            bucket.metadata['image_path'].extend(doc.metadata['image_path'])
+        else:
+            bucket = merged.setdefault(doc.metadata['page'], doc.model_copy())  # or clone
+            bucket.page_content += "\n\n" + doc.page_content
+    return list(merged.values())
+
+def remove_metadata(objects) -> list:
+    for object in objects:
+        del object.metadata['base64_encoding']
+        del object.metadata['html']
+        del object.metadata['category']
+        del object.metadata['id']
+    return objects
+
+def save_docs(docs) -> None:
+    with open('outputs/docs.pkl', 'wb') as f:
+        pickle.dump(docs, f)
+
+def save_markdown(docs) -> None:
+    arr = []
+    for doc in docs:
+        arr.append(doc.page_content)
+    markdown = "\n\n".join(arr)
+    with open('outputs/markdown.md', 'w') as f:
+        f.write(markdown)
+
+def main():
+
+    json_data_arr = get_json_arr()
+    flattened = flatten_json(json_data_arr)
+    print("📄 문서 생성 완료")
+    
+    docs = create_docs(flattened)
+    docs = extract_images(docs)
+    print("📄 이미지 추출 완료")
+    
+    merged = merge_docs(docs)
+    print("📄 문서 병합 완료")
+    
+    cleaned = remove_metadata(merged)  
+    print("📄 메타데이터 제거 완료")
+    # print(cleaned)
+    # import sys
+    # sys.exit(0)
+    save_docs(cleaned)
+    print("📄 문서 저장 완료")
+
+    save_markdown(cleaned)
+    print("📄 마크다운 저장 완료")
+    print("✅ 모든 작업 완료")
+
+if __name__ == "__main__":
+    main()
