@@ -135,15 +135,15 @@ def save_text(split_documents: list) -> None:
     # 청킹 테스트 문서
     delimiter = "\n\n\n" + ("---" * 50) + "\n\n\n"
     split_documents_text = delimiter.join([doc.page_content for doc in split_documents])
-    with open(f"outputs/{output_path_prefix}_split_documents.txt", "w", encoding="utf-8") as f:
+    with open(f"{output_path_prefix}_split_documents.txt", "w", encoding="utf-8") as f:
         f.write(split_documents_text)
 
 def save_split_document(split_documents: list) -> None:
-    with open(f'outputs/{output_path_prefix}_split_documents.pkl', 'wb') as f:
+    with open(f'{output_path_prefix}_split_documents.pkl', 'wb') as f:
         pickle.dump(split_documents, f)
 
 def main():
-    with open(f"outputs/{output_path_prefix}_docs.pkl", "rb") as f:
+    with open(f"{output_path_prefix}_docs.pkl", "rb") as f:
         docs = pickle.load(f)
 
     llm = ChatOpenAI(model_name="gpt-5-nano", temperature=0.0)
@@ -151,11 +151,16 @@ def main():
     messages_for_image = prepare_image_summary(docs)
     messages_for_text = prepare_text_summary(docs)
     docs = summarize_image(docs, messages_for_image, llm)
+    print("이미지 요약 완료")
     docs = summarize_text(docs, messages_for_text, llm)
-
+    print("텍스트 요약 완료")
     split_documents = split_docs(docs)
+    print("문서 분할 완료")
     save_text(split_documents)
+    print("텍스트 저장 완료")
     save_split_document(split_documents)
-
+    print("문서 저장 완료")
+    print("✅ 모든 작업 완료")
+    
 if __name__ == "__main__":
     main()

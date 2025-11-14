@@ -2,6 +2,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 import pickle
 import pandas as pd
+from config import output_path_prefix
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -58,21 +59,26 @@ def save_data(responses: list[SyntheticData]) -> None:
         arr.append(obj)
     
     df = pd.DataFrame(arr)
-    df.to_csv("outputs/synthetic_output.csv", index=True)
+    df.to_csv(f"{output_path_prefix}_synthetic.csv", index=True)
 
 def main():
-    with open("outputs/split_documents.pkl", "rb") as f:
+    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
     trimmed = split_documents[2:]
     llm = ChatOpenAI(model_name="gpt-5-nano", temperature=0)
 
     queries = generate_prompt(trimmed)
-    print("Generated queries")
+    print("쿼리 생성")
+    print(f"쿼리 개수: {len(queries)}")
+
     responses = generate_data(llm, queries)
-    print("Generated responses")
+    print(f"응답 개수: {len(responses)}")
+    print("응답 생성")
+    
     save_data(responses)
-    print("Saved data")
+    print("데이터 저장")
+    print("✅ 모든 작업 완료")
 
 if __name__ == "__main__":
     main()

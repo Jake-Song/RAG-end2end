@@ -13,12 +13,12 @@ def f1_score_summary_evaluator(outputs: list[dict], reference_outputs: list[dict
         output_page_number = output_dict["page_number"]
         reference_output_page_number = reference_output_dict["page_number"]
 
-        # TODO: 문장 비교 방법 추가(ex 코사인 유사도도)
+        # 문장 비교 방법 추가(코사인 유사도)
         output = get_openai_embedding(output_answer)
         reference_output = get_openai_embedding(reference_output_answer)
         similarity = calculate_cosine_similarity(output, reference_output)
 
-        if similarity > 0.6:
+        if similarity > 0.7:
             true_positives += 1
 
         elif output_answer != reference_output_answer:

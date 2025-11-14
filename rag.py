@@ -27,7 +27,7 @@ class GraphState(TypedDict):
     page_number: Annotated[list[int], "Page Number"]  # 관련 문서의 페이지 번호 리스트
 
 # 사전에 처리된 문서 청크 로드 (pickle 파일에서)
-with open(f"outputs/{output_path_prefix}_split_documents.pkl", "rb") as f:
+with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
 # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
@@ -85,7 +85,7 @@ def llm_answer(state: GraphState) -> GraphState:
     # 생성된 답변, 문서, 페이지 번호를 상태에 저장하여 반환
     return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
 
-with open(f"outputs/{output_path_prefix}_split_documents.pkl", "rb") as f:
+with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
     split_documents = pickle.load(f)
 
 # embeddings = OpenAIEmbeddings()

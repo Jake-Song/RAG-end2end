@@ -2,6 +2,7 @@ import pandas as pd
 from langsmith import Client
 from rag import rag_bot_invoke
 from evaluators.f1_score import f1_score_summary_evaluator
+from config import output_path_prefix, pdf_name
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -47,14 +48,15 @@ def evaluate(dataset_name: str, limit: int) -> dict:
 
 def main():
     
-    df = pd.read_csv("outputs/synthetic_output.csv")
-    dataset_name = "synthetic_dataset"
+    df = pd.read_csv(f"{output_path_prefix}_synthetic.csv")
+    dataset_name = f"{pdf_name}_synthetic_dataset"
     create_dataset(df, dataset_name)
-    print("Created dataset")
+    print("데이터셋 생성")
     experiment_results = evaluate(dataset_name, 10)
-    print("Evaluated")
-    experiment_results.to_pandas().to_csv(f"outputs/{dataset_name}_evaluation.csv", index=False)
-    print("Saved evaluation results")
+    print("평가 완료")
+    experiment_results.to_pandas().to_csv(f"{output_path_prefix}_{dataset_name}_evaluation.csv", index=False)
+    print("평가 결과 저장")
+    print("✅ 모든 작업 완료")
 
 if __name__ == "__main__":
     main()

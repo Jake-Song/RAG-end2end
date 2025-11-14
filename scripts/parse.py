@@ -81,7 +81,6 @@ def extract_images(docs) -> list:
         if doc.metadata["category"] == "figure" or doc.metadata["category"] == "chart" or doc.metadata["category"] == "table":
             output_file = f"{image_output_path_prefix}_{doc.metadata['category']}_{idx}.png"
             output_file_path = output_file[1:]
-            
             soup = BeautifulSoup(doc.metadata['html'], 'html.parser')
             if doc.metadata['category'] == 'figure':
                 soup.find('img')['src'] = output_file
@@ -134,7 +133,7 @@ def remove_metadata(objects) -> list:
     return objects
 
 def save_docs(docs) -> None:
-    with open(f'outputs/{output_path_prefix}_docs.pkl', 'wb') as f:
+    with open(f'{output_path_prefix}_docs.pkl', 'wb') as f:
         pickle.dump(docs, f)
 
 def save_markdown(docs) -> None:
@@ -142,7 +141,7 @@ def save_markdown(docs) -> None:
     for doc in docs:
         arr.append(doc.page_content)
     markdown = "\n\n".join(arr)
-    with open(f'outputs/{output_path_prefix}_markdown.md', 'w') as f:
+    with open(f'{output_path_prefix}_markdown.md', 'w') as f:
         f.write(markdown)
 
 def main():
