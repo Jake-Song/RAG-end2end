@@ -6,13 +6,6 @@ from config import output_path_prefix
 from dotenv import load_dotenv
 load_dotenv()
 
-# LangSmith 추적을 설정합니다. https://smith.langchain.com
-# !pip install -qU langchain-teddynote
-from langchain_teddynote import logging
-
-# 프로젝트 이름을 입력합니다.
-logging.langsmith("synthetic")
-
 class SyntheticData(BaseModel):
     """Synthetic data with details."""
     query: str = Field(..., description="The query of the data")
@@ -27,6 +20,7 @@ def generate_prompt(trimmed) -> list[list[dict]]:
     user_prompt = f"""
                 Task: Extract 3 atomic facts and write 1 QA whose answer from following document 
                 Response: query : question, answers : answer, evidence : page content for the answer
+                write query and answers in Korean
             """
 
     queries = []
