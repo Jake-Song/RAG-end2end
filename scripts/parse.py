@@ -114,14 +114,26 @@ def extract_images(docs) -> list:
 def merge_docs(docs) -> list:
     merged = {}
     for doc in docs:
-        if doc.metadata['image_path'] is not []:
-            bucket = merged.setdefault(doc.metadata['page'], doc.model_copy())  # or clone
-            bucket.page_content += "\n\n" + doc.page_content
-            bucket.metadata['image_id'].extend(doc.metadata['image_id'])
-            bucket.metadata['image_path'].extend(doc.metadata['image_path'])
+        current_page = doc.metadata['page']
+
+        new_page = True if current_page not in merged.keys() else False
+        bucket = merged.setdefault(current_page, doc.model_copy(deep=True))
+        
+        if len(doc.metadata['image_path']) > 0:
+            if not new_page:
+                bucket.metadata['image_id'].extend(doc.metadata['image_id'])
+                bucket.metadata['image_path'].extend(doc.metadata['image_path'])
+                bucket.page_content += "\n" + doc.page_content + "\n"
+
+            else:
+                bucket.page_content = "\n\n" + bucket.page_content + "\n\n" 
         else:
-            bucket = merged.setdefault(doc.metadata['page'], doc.model_copy())  # or clone
-            bucket.page_content += "\n\n" + doc.page_content
+            if not new_page:
+                bucket.page_content += "\n" + doc.page_content + "\n"
+
+            else:
+                bucket.page_content = "\n\n" + bucket.page_content + "\n\n" 
+
     return list(merged.values())
 
 def remove_metadata(objects) -> list:
@@ -140,7 +152,7 @@ def save_markdown(docs) -> None:
     arr = []
     for doc in docs:
         arr.append(doc.page_content)
-    markdown = "\n\n".join(arr)
+    markdown = "\n".join(arr)
     with open(f'{output_path_prefix}_markdown.md', 'w') as f:
         f.write(markdown)
 

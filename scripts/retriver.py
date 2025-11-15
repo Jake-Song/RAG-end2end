@@ -4,9 +4,6 @@ from langchain.retrievers import BM25Retriever, EnsembleRetriever
 import pickle
 from config import output_path_prefix
 
-from dotenv import load_dotenv
-load_dotenv()
-
 def create_retriever(split_documents, embeddings):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
 

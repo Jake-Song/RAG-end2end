@@ -8,8 +8,6 @@ import pickle  # 직렬화된 데이터 로드용
 
 from scripts.retriver import create_retriever, load_retriever  # 리트리버 생성/로드 함수
 from config import output_path_prefix  # 설정 파일에서 출력 경로 가져오기
-from dotenv import load_dotenv
-load_dotenv()  # 환경변수 로드 (.env 파일)
 
 # LangSmith 추적을 설정합니다. https://smith.langchain.com
 # !pip install -qU langchain-teddynote

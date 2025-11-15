@@ -2,9 +2,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 import base64, pathlib
 import pickle
-from dotenv import load_dotenv
-load_dotenv()
-
 from config import output_path_prefix
 
 def prepare_image_summary(docs: list) -> list:
@@ -30,7 +27,7 @@ def prepare_image_summary(docs: list) -> list:
                                         "role": "user",
                                         "content": [
                                             {"type": "text", "text": f"Here is the text of the context.{context}"},
-                                            {"type": "text", "text": "Describe content of the image."},
+                                            {"type": "text", "text": "Describe content of the image in Korean."},
                                             {
                                                 "type": "image_url",
                                                 "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},            
@@ -52,7 +49,7 @@ def prepare_image_summary(docs: list) -> list:
                                     "role": "user",
                                     "content": [
                                         {"type": "text", "text": f"Here is the text of the context.{context}"},
-                                        {"type": "text", "text": "Describe content of the image."},
+                                        {"type": "text", "text": "Describe content of the image in Korean."},
                                         {
                                             "type": "image_url",
                                             "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},            
@@ -78,7 +75,7 @@ def prepare_text_summary(docs: list) -> list:
                             "role": "user",
                             "content": [
                                 {"type": "text", "text": f"Here is the text of the context.{context}"},
-                                {"type": "text", "text": "Summarize the text "},
+                                {"type": "text", "text": "Summarize the text in Korean."},
                             ]
                         }
                     }
@@ -150,12 +147,16 @@ def main():
 
     messages_for_image = prepare_image_summary(docs)
     messages_for_text = prepare_text_summary(docs)
+    print("이미지 요약 시작")
     docs = summarize_image(docs, messages_for_image, llm)
     print("이미지 요약 완료")
+    print("텍스트 요약 시작")
     docs = summarize_text(docs, messages_for_text, llm)
     print("텍스트 요약 완료")
+    print("문서 분할 시작")
     split_documents = split_docs(docs)
     print("문서 분할 완료")
+    print("텍스트 저장 시작")
     save_text(split_documents)
     print("텍스트 저장 완료")
     save_split_document(split_documents)

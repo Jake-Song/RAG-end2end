@@ -6,10 +6,6 @@ load_dotenv()
 # 설정
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
-# Set FILE_NAME dynamically:
-# 1. Check environment variable FILE_NAME
-# 2. Auto-detect from available PDFs in data directory
-# 3. Raise error if neither is available
 def get_FILE_NAME():
     # Check environment variable first
     if FILE_NAME_env := os.getenv("FILE_NAME"):

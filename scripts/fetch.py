@@ -4,9 +4,6 @@ from glob import glob
 import json
 import requests
 
-from dotenv import load_dotenv
-load_dotenv()   
-
 from config import input_file, batch_size
 
 # 업스테이지 api key 환경변수 설정

@@ -3,8 +3,6 @@ from pydantic import BaseModel, Field
 import pickle
 import pandas as pd
 from config import output_path_prefix
-from dotenv import load_dotenv
-load_dotenv()
 
 class SyntheticData(BaseModel):
     """Synthetic data with details."""
