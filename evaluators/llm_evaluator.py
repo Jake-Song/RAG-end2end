@@ -43,11 +43,14 @@ class CorrectnessEvaluator:
         Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct. Avoid simply stating the correct answer at the outset."""
 
     def correctness(self, inputs: dict, outputs: dict, reference_outputs: dict) -> bool:
+        print("inputs", inputs)
+        print("reference_outputs" + "\n", reference_outputs)
+        print("outputs" + "\n", outputs)
         """An evaluator for RAG answer accuracy"""
         answers = f"""\
-    QUESTION: {inputs['question']}
-    GROUND TRUTH ANSWER: {reference_outputs['answer']}
-    STUDENT ANSWER: {outputs['answer']}"""
+        QUESTION: {inputs['query']}
+        GROUND TRUTH ANSWER: {reference_outputs['answer']}
+        STUDENT ANSWER: {outputs['answer']}"""
         # Run evaluator
         grade = self.grader_llm.invoke([
             {"role": "system", "content": self.correctness_instructions},
@@ -70,7 +73,7 @@ class RelevanceEvaluator:
 
     def relevance(self, inputs: dict, outputs: dict) -> bool:
         """A simple evaluator for RAG answer helpfulness."""
-        answer = f"QUESTION: {inputs['question']}\nSTUDENT ANSWER: {outputs['answer']}"
+        answer = f"QUESTION: {inputs['query']}\nSTUDENT ANSWER: {outputs['answer']}"
         grade = self.grader_llm.invoke([
             {"role": "system", "content": self.relevance_instructions},
             {"role": "user", "content": answer}

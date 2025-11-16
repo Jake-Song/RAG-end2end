@@ -8,7 +8,7 @@ def f1_score_summary_evaluator(outputs: list[dict], reference_outputs: list[dict
     for output_dict, reference_output_dict in zip(outputs, reference_outputs):
                 
         output_answer = output_dict["answer"]
-        reference_output_answer = reference_output_dict["answers"]
+        reference_output_answer = reference_output_dict["answer"]
 
         output_page_number = output_dict["page_number"]
         reference_output_page_number = reference_output_dict["page_number"]
@@ -37,5 +37,6 @@ def f1_score_summary_evaluator(outputs: list[dict], reference_outputs: list[dict
 
     f1_score = 2 * (precision * recall) / (precision + recall)
 
-    return {"key": "f1_score", "score": f1_score} 
+    return {"results": [{"key": "f1_score", "score": f1_score}, {"key": "precision", "score": precision}, {"key": "recall", "score": recall}]}
+   
 

@@ -7,7 +7,7 @@ from config import output_path_prefix
 class SyntheticData(BaseModel):
     """Synthetic data with details."""
     query: str = Field(..., description="The query of the data")
-    answers: str = Field(..., description="The answers of the data")
+    answer: str = Field(..., description="The answer of the data")
     # chunk_id: str = Field(..., description="The chunk id of the evidence")
     page_number: str = Field(..., description="The page number of the evidence")
     evidence: str = Field(..., description="The evidence of the data")
@@ -53,7 +53,7 @@ def save_data(responses: list[SyntheticData]) -> None:
     for r in responses:
         obj = {
             "query": r.query,
-            "answers": r.answers,
+            "answer": r.answer,
             "evidence": r.evidence,
             "page_number": r.page_number,
             # "chunk_id": r.chunk_id,
@@ -68,7 +68,7 @@ def main():
         docs = pickle.load(f)
 
     trimmed = docs
-    llm = ChatOpenAI(model_name="gpt-5-nano", temperature=0)
+    llm = ChatOpenAI(model_name="gpt-5", temperature=0)
 
     queries = generate_prompt(trimmed)
     print("쿼리 생성")
