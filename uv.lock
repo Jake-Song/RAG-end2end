@@ -2267,6 +2267,21 @@ wheels = [
 ]
 
 [[package]]
+name = "langchain-chroma"
+version = "0.2.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "chromadb" },
+    { name = "langchain-core" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dd/94/93ab8f6e96429a60da50eea2d3f3ac988852f6b8da4e817d73ec026a0bd3/langchain_chroma-0.2.6.tar.gz", hash = "sha256:ec5ca0f6f7692ac053741e076ea086c4be0cfcb5846c8693b1bcc3089c88b65e", size = 17296, upload-time = "2025-09-11T19:54:47.991Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/bc/591e416a134f9fb766579d1ca9739f32b9d79c607a5053d34ad2b8fa7246/langchain_chroma-0.2.6-py3-none-any.whl", hash = "sha256:d7e10101b0942cd990eedb798c3d85ed3e8415a992c8a388843196f6ab97b41b", size = 12512, upload-time = "2025-09-11T19:54:46.72Z" },
+]
+
+[[package]]
 name = "langchain-community"
 version = "0.3.31"
 source = { registry = "https://pypi.org/simple" }
@@ -4940,7 +4955,7 @@ dependencies = [
     { name = "exifread" },
     { name = "faiss-cpu" },
     { name = "kiwipiepy" },
-    { name = "langchain" },
+    { name = "langchain-chroma" },
     { name = "langchain-community" },
     { name = "langchain-core" },
     { name = "langchain-teddynote" },
@@ -4972,7 +4987,7 @@ requires-dist = [
     { name = "exifread", specifier = ">=3.5.1" },
     { name = "faiss-cpu", specifier = ">=1.12.0" },
     { name = "kiwipiepy", specifier = ">=0.21.0" },
-    { name = "langchain", specifier = ">=0.3.27" },
+    { name = "langchain-chroma", specifier = ">=0.2.6" },
     { name = "langchain-community", specifier = ">=0.3.31" },
     { name = "langchain-core", specifier = "==0.3.79" },
     { name = "langchain-teddynote", specifier = ">=0.5.4" },

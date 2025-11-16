@@ -10,6 +10,7 @@ dependencies = [
     "exifread>=3.5.1",
     "faiss-cpu>=1.12.0",
     "kiwipiepy>=0.21.0",
+    "langchain-chroma>=0.2.6",
     "langchain-community>=0.3.31",
     "langchain-core==0.3.79",
     "langchain-teddynote>=0.5.4",

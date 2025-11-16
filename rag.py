@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI  # OpenAI 모델 및 임베딩
 from langchain.schema import Document  # LangChain 문서 스키마
 import pickle  # 직렬화된 데이터 로드용
 
-from scripts.retriver import create_retriever, load_retriever  # 리트리버 생성/로드 함수
+from scripts.retrieve import create_retriever, load_retriever  # 리트리버 생성/로드 함수
 from config import output_path_prefix  # 설정 파일에서 출력 경로 가져오기
 
 # LangSmith 추적을 설정합니다. https://smith.langchain.com
@@ -29,7 +29,7 @@ with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
 # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
-ensemble_retriever = load_retriever(split_documents)
+ensemble_retriever = load_retriever(split_documents, kiwi=True)
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: GraphState) -> GraphState:
@@ -88,7 +88,7 @@ with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
 
 # embeddings = OpenAIEmbeddings()
 # ensemble_retriever = create_retriever(split_documents, embeddings)
-ensemble_retriever = load_retriever(split_documents)
+ensemble_retriever = load_retriever(split_documents, kiwi=True)
 
 # 그래프 생성
 workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)

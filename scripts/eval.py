@@ -49,10 +49,10 @@ def evaluate(dataset_name: str, limit: int) -> dict:
 
 def main():
     
-    df = pd.read_csv(f"{output_path_prefix}_synthetic.csv")
+    # df = pd.read_csv(f"{output_path_prefix}_synthetic.csv")
     dataset_name = f"{FILE_NAME}_synthetic_dataset"
-    create_dataset(df, dataset_name)
-    print("데이터셋 생성")
+    # create_dataset(df, dataset_name)
+    # print("데이터셋 생성")
     experiment_results = evaluate(dataset_name, 10)
     print("평가 완료")
     experiment_results.to_pandas().to_csv(f"{output_path_prefix}_{dataset_name}_evaluation.csv", index=False)

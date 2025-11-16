@@ -67,7 +67,7 @@ def word_count(text):
 def prepare_text_summary(docs: list) -> list:
     messages_for_text = []
     for idx, doc in enumerate(docs):
-        if word_count(doc.page_content) > 500:
+        if word_count(doc.page_content) > 1000:
             context = doc.page_content
             message = {
                         "page": doc.metadata["page"],

@@ -8,7 +8,7 @@ class SyntheticData(BaseModel):
     """Synthetic data with details."""
     query: str = Field(..., description="The query of the data")
     answers: str = Field(..., description="The answers of the data")
-    chunk_id: str = Field(..., description="The chunk id of the evidence")
+    # chunk_id: str = Field(..., description="The chunk id of the evidence")
     page_number: str = Field(..., description="The page number of the evidence")
     evidence: str = Field(..., description="The evidence of the data")
 
@@ -16,9 +16,19 @@ def generate_prompt(trimmed) -> list[list[dict]]:
     system_prompt = "You are a careful dataset generator for RAG. Only answer from the provided passage."
     
     user_prompt = f"""
-                Task: Extract 3 atomic facts and write 1 QA whose answer from following document 
+                Task: write 1 QA pair whose answer is in the following document 
+                Generate query and answers in Korean. include atomic facts in the query
+                DO NOT GENERATE QUERY LIKE FOLLOWING : 
+                - "다음 문서에서 확인되는 3가지 사실은 무엇인가?" 
+                - "이 문서에서 도출할 수 있는 3가지 핵심 사실은 무엇인가?" 
+                - "다음 문서에서 안전 테스트 관련 핵심 사실 3가지를 요약하시오."
+                
+                Generate query like following :
+                - "AI 기술자의 임금 변화와 주요 행사는 무엇인가?"
+                - "G7은 2023년 어떤 국제 행동강령에 합의했나요?
+                - "FTC가 저작권청의 질의공고에 대해 제시한 주요 관심사는 무엇인가?"
+                
                 Response: query : question, answers : answer, evidence : page content for the answer
-                write query and answers in Korean
             """
 
     queries = []
@@ -26,7 +36,7 @@ def generate_prompt(trimmed) -> list[list[dict]]:
         prompt = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
-            {"role": "user", "content": "chunk id: " + str(doc.metadata["id"])},
+            # {"role": "user", "content": "chunk id: " + str(doc.metadata["id"])},
             {"role": "user", "content": "page number: " + str(doc.metadata["page"])},
             {"role": "user", "content": "content : " + doc.page_content},
         ]
@@ -46,7 +56,7 @@ def save_data(responses: list[SyntheticData]) -> None:
             "answers": r.answers,
             "evidence": r.evidence,
             "page_number": r.page_number,
-            "chunk_id": r.chunk_id,
+            # "chunk_id": r.chunk_id,
         }
         arr.append(obj)
     
@@ -54,10 +64,10 @@ def save_data(responses: list[SyntheticData]) -> None:
     df.to_csv(f"{output_path_prefix}_synthetic.csv", index=True)
 
 def main():
-    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
-        split_documents = pickle.load(f)
+    with open(f"{output_path_prefix}_docs.pkl", "rb") as f:
+        docs = pickle.load(f)
 
-    trimmed = split_documents[2:]
+    trimmed = docs
     llm = ChatOpenAI(model_name="gpt-5-nano", temperature=0)
 
     queries = generate_prompt(trimmed)
