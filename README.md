@@ -31,36 +31,34 @@
 ┌─────────────┐
 │    답변     │
 └─────────────┘
-```
-## 파일 구조
-
-```
-.
-├── rag.py                      # 메인 RAG 시스템
-├── scripts/
-│   ├── retrieve.py             # 리트리버 생성/로딩
-│   └── eval.py                 # 평가 스크립트
-├── utils/
-│   └── utils.py                # 유틸리티 함수
-├── config.py                   # 설정
-└── dev/rag_pipeline/           # 개발용 노트북
-```
 
 ## 설치
-uv 설치 
-```bash
-# 의존성 설치
-pip install langchain langchain-openai langchain-upstage langgraph
 
-# 또는 uv 사용 시
+### uv 설치
+
+macOS/Linux:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows:
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 패키지 설치
+
+```bash
+# 기본 패키지 설치
 uv sync
+
+# dev 패키지 포함 설치
 uv sync --dev
 ```
 
-환경 변수 설정:
+환경 변수 파일:
 ```bash
-export OPENAI_API_KEY="your-openai-api-key"
-export UPSTAGE_API_KEY="your-upstage-api-key"
+cp .env.example .env
 ```
 
 ## 사용법
@@ -109,8 +107,6 @@ python rag.py "한국 경제의 글로벌 리스크와 과제는 무엇인가?"
 ```
 
 ### 3. 프로그래밍 방식 사용
-
-#### 다른 스크립트에서 임포트 (지연 로딩으로 빠른 임포트):
 
 ```python
 from rag import rag_bot_invoke
