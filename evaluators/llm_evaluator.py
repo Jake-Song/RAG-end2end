@@ -42,7 +42,7 @@ class CorrectnessEvaluator:
         A correctness value of False means that the student's answer does not meet all of the criteria.
         Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct. Avoid simply stating the correct answer at the outset."""
 
-    def correctness(self, inputs: dict, outputs: dict, reference_outputs: dict) -> bool:
+    def correctness(self, inputs: dict, outputs: dict, reference_outputs: dict) -> dict:
         print("inputs", inputs)
         print("reference_outputs" + "\n", reference_outputs)
         print("outputs" + "\n", outputs)
@@ -56,7 +56,7 @@ class CorrectnessEvaluator:
             {"role": "system", "content": self.correctness_instructions},
             {"role": "user", "content": answers}
         ])
-        return grade["correct"]
+        return {"correctness": grade["correct"], "explanation": grade["explanation"]}
 
 class RelevanceEvaluator:
     def __init__(self):

@@ -1,13 +1,5 @@
 #! /bin/bash
 
-# 데이터 파싱부터 평가까지 한 번에 실행합니다.
-# 환경 변수 가져오기
-# if [ -f .env ]; then
-#     export $(grep -v '^#' .env | xargs)
-# fi
-
-
-
 echo "데이터 가져오기 시작"
 uv run python -m scripts.fetch 
 echo "데이터 가져오기 완료"
