@@ -99,16 +99,7 @@ Page numbers: [3, 7]
 Question: exit
 Goodbye!
 ```
-
-### 2. 단일 질문 모드
-
-빠른 일회성 질의:
-
-```bash
-python rag.py "한국 경제의 글로벌 리스크와 과제는 무엇인가?"
-```
-
-### 3. 프로그래밍 방식 사용
+### 2. 프로그래밍 방식
 
 ```python
 from rag import rag_bot_invoke
@@ -122,6 +113,29 @@ print(result['page_number'])
 result2 = rag_bot_invoke("인플레이션은 어떻습니까?")
 ```
 
+### 3. 스크립트 파일 실행
+```bash
+# 데이터 가져오기
+uv run python -m scripts.fetch
 
+# 데이터 파싱
+uv run python -m scripts.parse
+
+# 데이터 분할
+uv run python -m scripts.chunk
+
+# 리트리버 생성
+uv run python -m scripts.retrieve
+
+# 데이터 생성 
+uv run python -m scripts.synthetic_data
+
+# RAG 평가
+# LLM as Judge(correctness)
+uv run python -m scripts.correct_eval
+# Recall, F1 score
+uv run python -m scripts.summary_eval
+
+```
 
 
