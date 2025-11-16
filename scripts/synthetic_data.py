@@ -1,3 +1,9 @@
+"""
+합성 데이터 생성
+간단한 싱글턴 데이터 생성 방식
+GPT-5 모델 사용
+"""
+
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 import pickle

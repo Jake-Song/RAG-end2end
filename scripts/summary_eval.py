@@ -1,3 +1,11 @@
+"""
+Recall, F1 Score 평가
+Correctness 평가 데이터를 사용하여 Precision을 계산
+검색된(retrieved) 문서 데이터와 정답(answer) 문서 데이터를 비교하여 Recall을 계산
+F1 Score를 계산. F1 Score보다는 Retrieved Metric으로 사용하기 위함입니다.
+"""
+
+
 import pandas as pd
 from config import output_path_prefix
 

@@ -1,3 +1,11 @@
+"""
+LLM as Judge 방식
+1. correctness 평가
+2. relevance 평가
+3. groundedness 평가
+4. retrieval_relevance 평가
+"""
+
 from typing_extensions import Annotated, TypedDict
 from langchain_openai import ChatOpenAI
 

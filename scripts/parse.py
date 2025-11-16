@@ -1,3 +1,14 @@
+"""
+JSON 파일을 파싱하여 차트, 그래프, 표 이미지를 추출하고, 문서를 생성
+1. JSON 파일을 파싱
+2. id, image id, page 순서 정렬
+2. 추출한 차트, 그래프, 표 이미지를 문서에 넣음
+3. 문서를 페이지 별로 병합
+4. 필요없는 메타데이터 제거
+5. 문서를 pickle 파일로 저장
+6. 문서를 markdown 파일로 저장
+"""
+
 import os
 from glob import glob
 import json
@@ -13,7 +24,7 @@ load_dotenv()
 from config import input_file, image_output_path_prefix, output_path_prefix
 
 def get_json_arr() -> list:
-    # Find all shorter PDFs related to input_file
+    # 분할 PDF 파일 목록 조회
     short_input_files = glob(os.path.splitext(input_file)[0] + "_*.pdf")
     
     arr = []
@@ -43,18 +54,6 @@ def flatten_json(json_data_arr) -> list:
 
     return json_data_arr
 
-def validate_json(json_data_arr):
-         
-    # 유효성 검사
-    for idx1, data in enumerate(json_data_arr):
-        for idx2, element in enumerate(data['elements']):
-            if idx2 == 0:
-                print("start id", element['id'])
-                print("start page", element['page'],"\n")
-            if idx2 == len(data['elements']) - 1:
-                print("end id", element['id'])  
-                print("end page", element['page'],"\n")       
-                
 def create_docs(json_data_arr) -> list:
     docs = []
     for data in json_data_arr:
@@ -171,9 +170,7 @@ def main():
     
     cleaned = remove_metadata(merged)  
     print("📄 메타데이터 제거 완료")
-    # print(cleaned)
-    # import sys
-    # sys.exit(0)
+   
     save_docs(cleaned)
     print("📄 문서 저장 완료")
 

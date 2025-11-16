@@ -1,3 +1,16 @@
+"""
+페이지안에서 데이터를 분할합니다. (예 1페이지에서 2개의 청크, 2페이지에서 3개의 청크 등등)
+각 청크는 메타데이터(id, image_id, page, image_path, text_summary, image_summary)는 공유합니다.
+
+1. 이미지 요약 프롬프트 생성
+2. 텍스트 요약 프롬프트 생성
+3. 이미지 요약(LLM)
+4. 텍스트 요약(LLM)
+5. 문서 분할(Text Splitter)
+6. 문서 저장(Text, Pickle)
+"""
+
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import ChatOpenAI
 import base64, pathlib
@@ -67,6 +80,7 @@ def word_count(text):
 def prepare_text_summary(docs: list) -> list:
     messages_for_text = []
     for idx, doc in enumerate(docs):
+        # TODO: 요약하는 기준을 더 좋은 방법으로 수정
         if word_count(doc.page_content) > 1000:
             context = doc.page_content
             message = {
@@ -129,7 +143,7 @@ def split_docs(docs: list) -> list:
     return split_documents
 
 def save_text(split_documents: list) -> None:
-    # 청킹 테스트 문서
+    # 청킹 구분 확인하기 위해 문서 저장장
     delimiter = "\n\n\n" + ("---" * 50) + "\n\n\n"
     split_documents_text = delimiter.join([doc.page_content for doc in split_documents])
     with open(f"{output_path_prefix}_split_documents.txt", "w", encoding="utf-8") as f:

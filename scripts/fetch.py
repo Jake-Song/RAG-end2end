@@ -1,3 +1,7 @@
+"""
+PDF 파일을 분할하고, 분할된 PDF 파일을 업스테이지 API를 사용하여 파싱하여 JSON 파일로 저장합니다.
+"""
+
 import os
 import fitz
 from glob import glob
@@ -28,18 +32,16 @@ def split_pdf(input_file, batch_size):
             output_pdf.insert_pdf(input_pdf, from_page=start_page, to_page=end_page)
             output_pdf.save(output_file)
  
-    # Close input_pdf
     input_pdf.close()
  
 def call_document_parse(input_file, output_file):
-    # Send request
+    
     response = requests.post(
         "https://api.upstage.ai/v1/document-digitization",
         headers={"Authorization": f"Bearer {API_KEY}"},
-        data={"base64_encoding": "['figure', 'chart', 'table']", "model": "document-parse"}, # base64 encoding for cropped image of the figure category.
+        data={"base64_encoding": "['figure', 'chart', 'table']", "model": "document-parse"}, # base64 이미지 인코딩
         files={"document": open(input_file, "rb")})
  
-    # Save response
     if response.status_code == 200:
         with open(output_file, "w") as f:
             json.dump(response.json(), f, ensure_ascii=False)
@@ -51,10 +53,10 @@ def main():
     split_pdf(input_file, batch_size)
     print("📄 JSON 파일 생성 중...")
 
-    # Find all shorter PDFs related to input_file
+    # PDF 파일 목록 조회
     short_input_files = glob(os.path.splitext(input_file)[0] + "_*.pdf")
     
-    # Send request and save response for all shorter PDFs
+    # 파싱 json 파일 생성
     for short_input_file in short_input_files:
         print(short_input_file)
         short_output_file = os.path.splitext(short_input_file)[0] + ".json"

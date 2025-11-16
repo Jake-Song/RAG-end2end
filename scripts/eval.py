@@ -1,3 +1,7 @@
+"""
+langsmith 데이터 평가
+"""
+
 import pandas as pd
 from langsmith import Client
 from rag import rag_bot_invoke

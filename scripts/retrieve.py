@@ -1,3 +1,9 @@
+"""
+리트리버를 생성
+업스테이지 임베딩 사용(embedding-passage)
+Kiwi BM25와 FAISS를 결합한 앙상블 리트리버를 생성
+"""
+
 from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
 from langchain_community.vectorstores import FAISS

@@ -1,3 +1,9 @@
+"""
+Utility functions
+1. format_context: LLM이 답변할 때 사용하는 컨택스트 포맷팅 도구. 이미지 요약과 텍스트 요약을 넣음음
+
+"""
+
 from langchain.schema import Document
 
 def format_context(retrieved_docs: list[Document]) -> str:
