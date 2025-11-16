@@ -26,13 +26,22 @@ class GraphState(TypedDict):
     documents: Annotated[list[Document], "Documents"]  # 검색된 Document 객체 리스트
     page_number: Annotated[list[int], "Page Number"]  # 관련 문서의 페이지 번호 리스트
 
-# 사전에 처리된 문서 청크 로드 (pickle 파일에서)
-with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
-        split_documents = pickle.load(f)
+# 전역 변수로 캐싱 (lazy loading)
+_ensemble_retriever = None
+_app = None
 
-# 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
-embeddings = UpstageEmbeddings(model="embedding-passage")
-ensemble_retriever = load_retriever(split_documents, embeddings, kiwi=True)
+def get_ensemble_retriever():
+    """앙상블 리트리버를 lazy loading으로 가져옵니다 (최초 1회만 로드)"""
+    global _ensemble_retriever
+    if _ensemble_retriever is None:
+        # 사전에 처리된 문서 청크 로드 (pickle 파일에서)
+        with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+            split_documents = pickle.load(f)
+
+        # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
+        embeddings = UpstageEmbeddings(model="embedding-passage")
+        _ensemble_retriever = load_retriever(split_documents, embeddings, kiwi=True)
+    return _ensemble_retriever
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: GraphState) -> GraphState:
@@ -41,6 +50,7 @@ def retrieve_document(state: GraphState) -> GraphState:
 
     # 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
     # BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
+    ensemble_retriever = get_ensemble_retriever()
     retrieved_docs = ensemble_retriever.invoke(latest_question)
 
     # 검색된 모든 문서의 내용을 하나의 문자열로 결합
@@ -93,25 +103,40 @@ def llm_answer(state: GraphState) -> GraphState:
     # 생성된 답변, 문서, 페이지 번호를 상태에 저장하여 반환
     return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
 
-# 그래프 생성
-workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)
+def get_app():
+    """LangGraph 앱을 lazy loading으로 가져옵니다 (최초 1회만 컴파일)"""
+    global _app
+    if _app is None:
+        # 그래프 생성
+        ensemble_retriever = get_ensemble_retriever()
+        workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)
 
-# 노드 정의
-workflow.add_node("retrieve", retrieve_document)
-workflow.add_node("llm_answer", llm_answer)
+        # 노드 정의
+        workflow.add_node("retrieve", retrieve_document)
+        workflow.add_node("llm_answer", llm_answer)
 
-# 엣지 정의
-workflow.add_edge("retrieve", "llm_answer")  # 검색 -> 답변
-workflow.add_edge("llm_answer", END)  # 답변 -> 종료
+        # 엣지 정의
+        workflow.add_edge("retrieve", "llm_answer")  # 검색 -> 답변
+        workflow.add_edge("llm_answer", END)  # 답변 -> 종료
 
-# 그래프 진입점 설정
-workflow.set_entry_point("retrieve")
+        # 그래프 진입점 설정
+        workflow.set_entry_point("retrieve")
 
-# 체크포인터 설정
-memory = MemorySaver()
+        # 체크포인터 설정
+        memory = MemorySaver()
 
-# 컴파일
-app = workflow.compile(checkpointer=memory)
+        # 컴파일
+        _app = workflow.compile(checkpointer=memory)
+    return _app
+
+def preload():
+    """CLI 실행 시 모든 리소스를 미리 로드합니다"""
+    print("Loading RAG system...")
+    start_time = time.time()
+    get_app()  # 이 함수가 내부적으로 get_ensemble_retriever()도 호출함
+    load_time = time.time() - start_time
+    print(f"RAG system loaded in {load_time:.2f} seconds")
+    return load_time
 
 def rag_bot_invoke(question: str) -> dict:
     from langchain_core.runnables import RunnableConfig
@@ -120,17 +145,69 @@ def rag_bot_invoke(question: str) -> dict:
     # config 설정(재귀 최대 횟수, thread_id)
     config = RunnableConfig(recursion_limit=20, configurable={"thread_id": random_uuid()})
 
-    inputs = GraphState(question=question)
+    app = get_app()
+    inputs = {"question": question}
     result = app.invoke(inputs, config)
     return {'answer': result['answer'], 'documents': result['documents'], 'page_number': result['page_number']}
     
+def rag_bot_batch(questions: list[str]) -> dict:
+    from langchain_core.runnables import RunnableConfig
+    from langchain_teddynote.messages import random_uuid
+
+    # config 설정(재귀 최대 횟수, thread_id)
+    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": random_uuid()})
+
+    app = get_app()
+    inputs = [{"question": question} for question in questions]
+
+    results = app.batch(inputs, config)
+    return results
 
 if __name__ == "__main__":
     import sys
-    question = sys.argv[1] if len(sys.argv) > 1 else "What are the risks and challenges of Korea in global economy?"
-    result = rag_bot_invoke(question)
-    print(result['answer'], "\n")
-    print(result['documents'], "\n")
-    print(result['page_number'], "\n")
+
+    # CLI 실행 시 모든 리소스 미리 로드
+    preload()
+
+    # 인자가 주어진 경우 단일 질문 모드
+    if len(sys.argv) > 1:
+        question = sys.argv[1]
+        result = rag_bot_invoke(question)
+        print(result['answer'], "\n")
+        print(result['documents'], "\n")
+        print(result['page_number'], "\n")
+    # 인자가 없는 경우 대화형 루프 모드
+    else:
+        print("=" * 60)
+        print("RAG Bot Interactive Mode")
+        print("Type 'exit' or 'quit' to end the session")
+        print("=" * 60)
+
+        while True:
+            try:
+                question = input("\nQuestion: ").strip()
+
+                # 종료 명령어 체크
+                if question.lower() in ['exit', 'quit', 'q']:
+                    print("Goodbye!")
+                    break
+
+                # 빈 입력 무시
+                if not question:
+                    continue
+
+                # 질문 처리
+                result = rag_bot_invoke(question)
+                print("\nAnswer:", result['answer'])
+                print("\nPage numbers:", result['page_number'])
+                print("-" * 60)
+
+            except KeyboardInterrupt:
+                print("\n\nGoodbye!")
+                break
+            except Exception as e:
+                print(f"\nError: {e}")
+                print("Please try again.")
+                continue
   
     
