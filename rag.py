@@ -3,18 +3,20 @@ from typing import Annotated, TypedDict
 from langgraph.graph import END, StateGraph  # LangGraph 그래프 구조 관련
 from langgraph.checkpoint.memory import MemorySaver  # 메모리 기반 체크포인터
 from langchain_openai import ChatOpenAI  # OpenAI 모델 및 임베딩
+from langchain_upstage import UpstageEmbeddings
 from langchain.schema import Document  # LangChain 문서 스키마
 import pickle  # 직렬화된 데이터 로드용
-
+import time  # 실행 시간 측정용
+from utils.utils import format_context
 from scripts.retrieve import create_retriever, load_retriever  # 리트리버 생성/로드 함수
 from config import output_path_prefix  # 설정 파일에서 출력 경로 가져오기
 
 # LangSmith 추적을 설정합니다. https://smith.langchain.com
 # !pip install -qU langchain-teddynote
-from langchain_teddynote import logging
+# from langchain_teddynote import logging
 
-# 프로젝트 이름을 입력합니다.
-logging.langsmith("Langgraph")
+# # 프로젝트 이름을 입력합니다.
+# logging.langsmith("Langgraph")
 
 # GraphState 상태 정의: 그래프 노드 간 전달되는 데이터 구조
 class GraphState(TypedDict):
@@ -29,7 +31,8 @@ with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
 # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
-ensemble_retriever = load_retriever(split_documents, kiwi=True)
+embeddings = UpstageEmbeddings(model="embedding-passage")
+ensemble_retriever = load_retriever(split_documents, embeddings, kiwi=True)
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: GraphState) -> GraphState:
@@ -41,14 +44,16 @@ def retrieve_document(state: GraphState) -> GraphState:
     retrieved_docs = ensemble_retriever.invoke(latest_question)
 
     # 검색된 모든 문서의 내용을 하나의 문자열로 결합
-    context = "".join([doc.page_content for doc in retrieved_docs])
+    context = format_context(retrieved_docs)
 
     # 검색된 문서와 컨텍스트를 상태에 저장하여 다음 노드로 전달
     return {"documents": retrieved_docs, "context": context}
 
-
 # 답변 생성 노드: LLM을 사용하여 검색된 문서를 기반으로 답변 생성
 def llm_answer(state: GraphState) -> GraphState:
+    # 시작 시간 기록
+    start_time = time.time()
+
     # 상태에서 사용자의 질문 가져오기
     latest_question = state["question"]
 
@@ -80,15 +85,13 @@ def llm_answer(state: GraphState) -> GraphState:
     for doc in state["documents"]:
         page_number.append(doc.metadata["page"])
 
+    # 종료 시간 기록 및 실행 시간 출력
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"LLM answer generation time: {execution_time:.2f} seconds")
+
     # 생성된 답변, 문서, 페이지 번호를 상태에 저장하여 반환
     return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
-
-with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
-    split_documents = pickle.load(f)
-
-# embeddings = OpenAIEmbeddings()
-# ensemble_retriever = create_retriever(split_documents, embeddings)
-ensemble_retriever = load_retriever(split_documents, kiwi=True)
 
 # 그래프 생성
 workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)

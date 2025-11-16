@@ -34,10 +34,10 @@ def save_retriever(split_documents, embeddings):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
     vectorstore.save_local("faiss_index")
 
-def load_retriever(split_documents, kiwi=False):
+def load_retriever(split_documents, embeddings, kiwi=False):
     vectorstore = FAISS.load_local(
         "faiss_index", 
-        OpenAIEmbeddings(),
+        embeddings,
         allow_dangerous_deserialization=True  # needed in newer versions
     )
     faiss_retriever = vectorstore.as_retriever(search_kwargs={"k": 1})
@@ -58,7 +58,7 @@ def main():
         split_documents = pickle.load(f)
 
     # embeddings = OpenAIEmbeddings()    
-    embeddings = UpstageEmbeddings()
+    embeddings = UpstageEmbeddings(model="embedding-passage")
     _ = create_retriever(split_documents, embeddings, kiwi=True)
     save_retriever(split_documents, embeddings)
     print("✅ 모든 작업 완료")
