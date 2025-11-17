@@ -7,17 +7,17 @@ LLM as Judge 방식
 import pandas as pd
 from evaluators.llm_evaluator import CorrectnessEvaluator
 from config import output_path_prefix
-from rag import rag_bot_batch
+from rag import rag_bot_batch, rag_bot_invoke
 
 correctness_evaluator = CorrectnessEvaluator()
 df = pd.read_csv(f"{output_path_prefix}_synthetic.csv")
 
 df = df[df['query'].notna()]
-# df = df[:5]
+
 def generate_outputs(df: pd.DataFrame) -> list[dict]:
     inputs = []
    
-    for index, row in df.iterrows():
+    for _, row in df.iterrows():
         inputs.append(row["query"])
 
     outputs = rag_bot_batch(inputs)

@@ -18,6 +18,8 @@ import time
 from utils.utils import format_context
 from scripts.retrieve import create_retriever, load_retriever
 from reranker.rrf import ReciprocalRankFusion
+# from reranker.cohere import cohere_reranker
+# from reranker.cross_encoder import cross_encoder_reranker
 from config import output_path_prefix
 
 # LangSmith 추적을 설정합니다. https://smith.langchain.com
@@ -71,10 +73,16 @@ def retrieve_document(state: GraphState) -> GraphState:
 
 def rerank_document(state: GraphState) -> GraphState:
     retrieved_docs = state["documents"]
-    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=3)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=2)
     context = format_context(rrf_docs)
 
     return {"documents": rrf_docs, "context": context}
+
+# def rerank_document(state: GraphState) -> GraphState:
+#     latest_question = state["question"]
+#     compressed_docs = cross_encoder_reranker(latest_question)
+#     context = format_context(compressed_docs)
+#     return {"documents": compressed_docs, "context": context}
 
 # 답변 생성 노드: LLM을 사용하여 검색된 문서를 기반으로 답변 생성
 def llm_answer(state: GraphState) -> GraphState:
@@ -85,7 +93,7 @@ def llm_answer(state: GraphState) -> GraphState:
 
     # OpenAI LLM 초기화 (temperature=0: 결정적 답변 생성)
     # llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
-    llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
+    llm = ChatUpstage(model="solar-pro2", temperature=0.0)
 
     system_prompt = """You are an assistant for question-answering tasks.
         Use the following pieces of retrieved context to answer the question.
@@ -117,7 +125,7 @@ def get_app():
     if _app is None:
         ensemble_retriever = get_ensemble_retriever()
         workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)
-
+        # workflow = StateGraph(GraphState)
         workflow.add_node("retrieve", retrieve_document)
         workflow.add_node("rerank", rerank_document)
         workflow.add_node("llm_answer", llm_answer)
@@ -127,6 +135,7 @@ def get_app():
         workflow.add_edge("llm_answer", END)
 
         workflow.set_entry_point("retrieve")
+        # workflow.set_entry_point("rerank")
 
         memory = MemorySaver()
 

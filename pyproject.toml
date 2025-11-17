@@ -3,9 +3,10 @@ name = "RAG-end-to-end"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
     "chromadb>=1.3.4",
+    "cohere>=5.20.0",
     "datasets>=4.3.0",
     "evaluate>=0.4.6",
     "exifread>=3.5.1",
@@ -13,8 +14,10 @@ dependencies = [
     "kiwipiepy>=0.21.0",
     "langchain>=0.3.27",
     "langchain-chroma>=0.2.6",
+    "langchain-cohere>=0.4.6",
     "langchain-community>=0.3.31",
     "langchain-core==0.3.79",
+    "langchain-huggingface>=0.3.1",
     "langchain-teddynote>=0.5.4",
     "langchain-text-splitters>=0.3.11",
     "langchain-upstage>=0.7.4",
@@ -32,6 +35,7 @@ dependencies = [
     "rich>=14.2.0",
     "rouge-score>=0.1.2",
     "sacrebleu>=2.5.1",
+    "sentence-transformers>=5.1.2",
 ]
 
 [dependency-groups]
