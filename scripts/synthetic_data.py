@@ -5,6 +5,7 @@ GPT-5 모델 사용
 """
 
 from langchain_openai import ChatOpenAI
+from langchain_upstage import ChatUpstage
 from pydantic import BaseModel, Field
 import pickle
 import pandas as pd
@@ -22,7 +23,7 @@ def generate_prompt(trimmed) -> list[list[dict]]:
     system_prompt = "You are a careful dataset generator for RAG. Only answer from the provided passage."
     
     user_prompt = f"""
-                Task: write 1 QA pair whose answer is in the following document 
+                Task: write 1 QA pair whose answer relates to following document.
                 Generate query and answers in Korean. include atomic facts in the query
                 DO NOT GENERATE QUERY LIKE FOLLOWING : 
                 - "다음 문서에서 확인되는 3가지 사실은 무엇인가?" 
@@ -74,7 +75,8 @@ def main():
         docs = pickle.load(f)
 
     trimmed = docs
-    llm = ChatOpenAI(model_name="gpt-5", temperature=0)
+    # llm = ChatOpenAI(model_name="gpt-5", temperature=0)
+    llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
 
     queries = generate_prompt(trimmed)
     print("쿼리 생성")

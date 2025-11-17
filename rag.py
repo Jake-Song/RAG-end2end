@@ -11,7 +11,7 @@ from typing import Annotated, TypedDict
 from langgraph.graph import END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
-from langchain_upstage import UpstageEmbeddings
+from langchain_upstage import UpstageEmbeddings, ChatUpstage
 from langchain.schema import Document
 import pickle
 import time
@@ -22,10 +22,10 @@ from config import output_path_prefix
 
 # LangSmith 추적을 설정합니다. https://smith.langchain.com
 # !pip install -qU langchain-teddynote
-# from langchain_teddynote import logging
+from langchain_teddynote import logging
 
-# # 프로젝트 이름을 입력합니다.
-# logging.langsmith("Langgraph")
+# 프로젝트 이름을 입력합니다.
+logging.langsmith("Langgraph")
 
 # GraphState 상태 정의: 그래프 노드 간 전달되는 데이터 구조
 class GraphState(TypedDict):
@@ -84,7 +84,8 @@ def llm_answer(state: GraphState) -> GraphState:
     context = state["context"]
 
     # OpenAI LLM 초기화 (temperature=0: 결정적 답변 생성)
-    llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
+    # llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
+    llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
 
     system_prompt = """You are an assistant for question-answering tasks.
         Use the following pieces of retrieved context to answer the question.

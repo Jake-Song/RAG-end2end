@@ -12,6 +12,8 @@ from rag import rag_bot_batch
 correctness_evaluator = CorrectnessEvaluator()
 df = pd.read_csv(f"{output_path_prefix}_synthetic.csv")
 
+df = df[df['query'].notna()]
+# df = df[:5]
 def generate_outputs(df: pd.DataFrame) -> list[dict]:
     inputs = []
    

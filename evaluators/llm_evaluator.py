@@ -8,6 +8,7 @@ LLM as Judge 방식
 
 from typing_extensions import Annotated, TypedDict
 from langchain_openai import ChatOpenAI
+from langchain_upstage import ChatUpstage
 
 # Grade output schema
 class CorrectnessGrade(TypedDict):
@@ -39,8 +40,12 @@ class RetrievalRelevanceGrade(TypedDict):
 
 class CorrectnessEvaluator:
     def __init__(self):
-        self.grader_llm = ChatOpenAI(model="gpt-5-nano", temperature=0).with_structured_output(
-            CorrectnessGrade, method="json_schema", strict=True
+        # self.grader_llm = ChatOpenAI(model="gpt-5-nano", temperature=0).with_structured_output(
+        #     CorrectnessGrade, method="json_schema", strict=True
+        # )
+
+        self.grader_llm = ChatUpstage(model="solar-pro2", temperature=0.0).with_structured_output(
+            CorrectnessGrade
         )
         self.correctness_instructions = """You are a teacher grading a quiz. You will be given a QUESTION, the GROUND TRUTH (correct) ANSWER, and the STUDENT ANSWER. Here is the grade criteria to follow:
         (1) Grade the student answers based ONLY on their factual accuracy relative to the ground truth answer. (2) Ensure that the student answer does not contain any conflicting statements.
