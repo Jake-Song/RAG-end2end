@@ -17,6 +17,7 @@ import pickle
 import time
 from utils.utils import format_context
 from scripts.retrieve import create_retriever, load_retriever
+from reranker.rrf import ReciprocalRankFusion
 from config import output_path_prefix
 
 # LangSmith 추적을 설정합니다. https://smith.langchain.com
@@ -41,14 +42,17 @@ _app = None
 def get_ensemble_retriever():
     """앙상블 리트리버를 lazy loading으로 가져옵니다 (최초 1회만 로드)"""
     global _ensemble_retriever
+    global _faiss_retriever
+    global _bm25_retriever
+
     if _ensemble_retriever is None:
         with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
             split_documents = pickle.load(f)
 
         # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
         embeddings = UpstageEmbeddings(model="embedding-passage")
-        _ensemble_retriever = load_retriever(split_documents, embeddings, kiwi=True)
-    return _ensemble_retriever
+        _ensemble_retriever, _bm25_retriever, _faiss_retriever = load_retriever(split_documents, embeddings, kiwi=True, search_k=10)
+    return _ensemble_retriever, _bm25_retriever, _faiss_retriever
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: GraphState) -> GraphState:
@@ -56,12 +60,21 @@ def retrieve_document(state: GraphState) -> GraphState:
 
     # 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
     # BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
-    ensemble_retriever = get_ensemble_retriever()
-    retrieved_docs = ensemble_retriever.invoke(latest_question)
+    _, bm25_retriever, faiss_retriever = get_ensemble_retriever()
+    retrieved_docs_faiss = faiss_retriever.invoke(latest_question)
+    retrieved_docs_bm25 = bm25_retriever.invoke(latest_question)
+    retrieved_docs_faiss = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_faiss)
+    retrieved_docs_bm25 = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_bm25)
+    retrieved_docs = retrieved_docs_faiss + retrieved_docs_bm25
 
-    context = format_context(retrieved_docs)
+    return {"documents": retrieved_docs}
 
-    return {"documents": retrieved_docs, "context": context}
+def rerank_document(state: GraphState) -> GraphState:
+    retrieved_docs = state["documents"]
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=3)
+    context = format_context(rrf_docs)
+
+    return {"documents": rrf_docs, "context": context}
 
 # 답변 생성 노드: LLM을 사용하여 검색된 문서를 기반으로 답변 생성
 def llm_answer(state: GraphState) -> GraphState:
@@ -105,9 +118,11 @@ def get_app():
         workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)
 
         workflow.add_node("retrieve", retrieve_document)
+        workflow.add_node("rerank", rerank_document)
         workflow.add_node("llm_answer", llm_answer)
 
-        workflow.add_edge("retrieve", "llm_answer")
+        workflow.add_edge("retrieve", "rerank")
+        workflow.add_edge("rerank", "llm_answer")
         workflow.add_edge("llm_answer", END)
 
         workflow.set_entry_point("retrieve")

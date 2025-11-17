@@ -1,21 +1,29 @@
-class RRF:
+f"""
+Reciprocal Rank Fusion (RRF) 구현
+RRF(d) = sum(1 / (k + rank_i(d)))
+d: 문서
+k: 상수
+rank_i(d): 리트리버 i에 대한 문서 d의 순위
+"""
+from langchain.schema import Document
+class ReciprocalRankFusion:
     
     k = 60
        
     @classmethod
-    def _calculate_score(cls, rank):
+    def _calculate_score(cls, rank: int) -> float:
         score = 1 / (cls.k + rank) 
         return score
     
     @classmethod
-    def get_rrf_docs(cls, one, other, cutoff):
-
-        for idx, (one_doc, other_doc) in enumerate(zip(one, other)):
+    def calculate_rank_score(cls, docs: list[Document]) -> list[Document]:
+        for idx, doc in enumerate(docs):
             rank = idx + 1
-            one_doc.metadata['rank_score'] = cls._calculate_score(rank)
-            other_doc.metadata['rank_score'] = cls._calculate_score(rank)   
+            doc.metadata['rank_score'] = cls._calculate_score(rank)
+        return docs
 
-        docs = one + other
+    @classmethod
+    def get_rrf_docs(cls, docs: list[Document], cutoff: int) -> list[Document]:
 
         merged = {}
         for doc in docs:
@@ -35,6 +43,6 @@ class RRF:
         merged_docs_sorted = sorted(merged_docs, key=lambda x: x.metadata['rank_score'], reverse=True)
 
         rrf_docs = merged_docs_sorted[:cutoff]
-        return rrf_docs
+        return rrf_docs    
     
   

@@ -1,5 +1,5 @@
 from scripts.retrieve import load_retriever
-from reranker.rrf import RRF
+from reranker.rrf import ReciprocalRankFusion
 from config import output_path_prefix
 import pickle
 from langchain_upstage import UpstageEmbeddings
@@ -12,7 +12,7 @@ embeddings = UpstageEmbeddings(model="embedding-passage")
 _, bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=True, search_k=10)
 
 def rerank_RRF(question, cutoff):
-    rrf_docs = RRF.get_rrf_docs(faiss_retriever.invoke(question), bm25_retriever.invoke(question), cutoff)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(faiss_retriever.invoke(question), bm25_retriever.invoke(question), cutoff)
     return rrf_docs
 
 if __name__ == "__main__":
