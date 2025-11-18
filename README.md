@@ -138,4 +138,25 @@ uv run python -m scripts.summary_eval
 
 ```
 
+### 4. bash 파일 실행
+```bash
+chmod +x e2e.sh
+chmod +x ready_for_RAG.sh
+chmod +x gen_data.sh
+chmod +x eval.sh
+
+# 파싱부터 RAG 평가까지
+./e2e.sh
+
+# 데이터 파싱부터 RAG 시스템 구축까지
+./ready_for_RAG.sh
+
+# 데이터 생성
+./gen_data.sh
+
+# RAG 평가
+./eval.sh
+
+```
+
 
