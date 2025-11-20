@@ -61,6 +61,12 @@ uv sync --dev
 환경 변수 파일:
 ```bash
 cp .env.example .env
+# env 설정
+UPSTAGE_API_KEY= # 문서 파서, 임베딩 모델, 추론 모델
+OPENAI_API_KEY=  # 임베딩 모델, 추론 모델
+LANGSMITH_API_KEY=  # 실행 추적적
+
+FILE_NAME=  # 확장자 없이 파일 이름 (파일은 data 폴더 내에 위치해야 합니다.)
 ```
 
 ## 사용법
