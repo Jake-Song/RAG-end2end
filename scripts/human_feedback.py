@@ -26,6 +26,7 @@ def display_row(row, index, total):
     print("=" * 80)
     print(f"\nQuery: {row['query']}")
     print(f"\nGround Truth Answer: {row['answer']}")
+    print(f"\nGround Truth Page Number: {row['page_number']}")
     print(f"\nGenerated Answer: {row['outputs.answer']}")
     print(f"\nPage Number: {row['outputs.page_number']}")
     print(f"\nLLM Correctness: {row['correctness']}")
