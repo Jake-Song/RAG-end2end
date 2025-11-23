@@ -29,8 +29,9 @@ def display_row(row, index, total):
     print(f"\nGround Truth Page Number: {row['page_number']}")
     print(f"\nGenerated Answer: {row['outputs.answer']}")
     print(f"\nPage Number: {row['outputs.page_number']}")
-    print(f"\nLLM Correctness: {row['correctness']}")
-    print(f"\nLLM Explanation: {row['explanation']}")
+    if 'correctness' in row:
+        print(f"\nLLM Correctness: {row['correctness']}")
+        print(f"\nLLM Explanation: {row['explanation']}")
     print("-" * 80)
 
 
@@ -94,14 +95,15 @@ def main():
         correct = df['human_feedback'].sum()
         print(f"Human marked correct: {correct} / {completed} ({correct/completed*100:.1f}%)")
 
-        # Compare with LLM evaluation
-        llm_correct = df[df['human_feedback'].notna()]['correctness'].sum()
-        print(f"LLM marked correct: {llm_correct} / {completed} ({llm_correct/completed*100:.1f}%)")
+        if 'correctness' in df.columns:
+            # Compare with LLM evaluation
+            llm_correct = df[df['human_feedback'].notna()]['correctness'].sum()
+            print(f"LLM marked correct: {llm_correct} / {completed} ({llm_correct/completed*100:.1f}%)")
 
-        # Agreement rate
-        agreement = (df['human_feedback'] == df['correctness']).sum()
-        print(f"Human-LLM agreement: {agreement} / {completed} ({agreement/completed*100:.1f}%)")
-
+            # Agreement rate
+            agreement = (df['human_feedback'] == df['correctness']).sum()
+            print(f"Human-LLM agreement: {agreement} / {completed} ({agreement/completed*100:.1f}%)")
+        
 
 if __name__ == "__main__":
     main()
