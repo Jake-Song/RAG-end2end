@@ -12,12 +12,13 @@ def recall(df: pd.DataFrame) -> dict:
     false_negatives = 0
 
     for _, row in df.iterrows():
-        reference_page_number = [int(page) for page in row["page_number"].strip("[]").split(",")]
-        retrieved_page_number = [int(page) for page in row["outputs.page_number"].strip("[]").split(",")]
-        for page in retrieved_page_number:
+        # 중복 페이지 제거
+        reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
+        retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
+        for i, page in enumerate(retrieved_page_number):
             if page in reference_page_number:
                 true_positives += 1
-            else:
+            elif i <= len(reference_page_number)-1 and page not in reference_page_number:
                 false_negatives += 1
 
     print(f"True Positives: {true_positives}, False Negatives: {false_negatives}")
