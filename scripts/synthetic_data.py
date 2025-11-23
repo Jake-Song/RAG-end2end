@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 import pickle
 import pandas as pd
 from config import output_path_prefix
-
+from langchain.schema import Document
 import random
 random.seed(42)
 
@@ -35,7 +35,7 @@ class SyntheticData(BaseModel):
     query: str = Field(..., description="The query of the data")
     answer: str = Field(..., description="The answer of the data")
     
-def generate_prompt(docs, query_count: int = 10) -> list[list[dict]]:
+def generate_prompt(docs: list[Document], query_count: int = 10) -> list[list[dict]]:
     system_prompt = "You are a careful dataset generator for RAG. Only answer from the provided passage."
     
     user_prompt = f"""
@@ -55,12 +55,17 @@ def generate_prompt(docs, query_count: int = 10) -> list[list[dict]]:
     queries = []
     choices = [pick_random_page_range(docs, min_doc=0, max_doc=len(docs)-1) for _ in range(query_count*2)]
     pairs = [tuple(choices[i:i+2]) for i in range(0, len(choices), 2)]
-        
+    
     for pair in pairs:
+       
+        doc1 = next(doc.page_content for doc in docs if doc.metadata["page"] == pair[0])
+        doc2 = next(doc.page_content for doc in docs if doc.metadata["page"] == pair[1])
         prompt = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
-            {"role": "user", "content": "## documents : " + "### Document 1" + "\n" + docs[pair[0]].page_content + "\n" + "### Document 2" + "\n" + docs[pair[1]].page_content}
+            {"role": "user", 
+            "content": 
+            "## documents : " + "### Document 1" + "\n" + doc1 + "\n" + "### Document 2" + "\n" + doc2}
         ]
         queries.append(prompt)
     return queries, pairs
@@ -72,7 +77,9 @@ def generate_data(llm: ChatUpstage, queries: list[list[dict]]) -> list[Synthetic
 
 def save_data(responses: list[SyntheticData], pairs: list[tuple[int, int]]) -> None:
     arr = []
+    
     for r, pair in zip(responses, pairs):
+           
         obj = {
             "query": r.query,
             "answer": r.answer,
@@ -90,7 +97,7 @@ def main():
     # llm = ChatOpenAI(model_name="gpt-5", temperature=0)
     llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
 
-    queries, pairs = generate_prompt(docs, query_count=10)
+    queries, pairs = generate_prompt(docs, query_count=50)
     print("페이지 짝", pairs)
     print("쿼리 생성")
     print(f"쿼리 개수: {len(queries)}")
