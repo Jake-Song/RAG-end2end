@@ -7,8 +7,6 @@ Note: 검색된 문서 수와 정답 문서 데이터 수가 같은 경우 Recal
 import pandas as pd
 from config import output_path_prefix
 
-df = pd.read_csv(f"{output_path_prefix}_eval.csv")
-
 def recall(df: pd.DataFrame) -> dict:
     true_positives = 0
     false_negatives = 0
@@ -80,13 +78,26 @@ def f1_score(df: pd.DataFrame) -> dict:
 
     return {"f1_score": f1_score, "precision": precision, "recall": recall}
 
+def correctness(df: pd.DataFrame) -> dict:
+    correctness_true = 0
+    correctness_false = 0
+    for _, row in df.iterrows():
+        if row["correctness"] == True:
+            correctness_true += 1
+        else:
+            correctness_false += 1
+    correctness = correctness_true / (correctness_true + correctness_false)
+    return {"correctness": correctness}    
+
 def main():
+    df = pd.read_csv(f"{output_path_prefix}_eval.csv")
     recall_result = recall(df)
     print(f"Recall: {recall_result['recall']}")
     f1_score_result = f1_score(df)
     print(f"F1 Score: {f1_score_result['f1_score']}")
     print(f"Precision: {f1_score_result['precision']}")
     print(f"Recall: {f1_score_result['recall']}")
-   
+    # correctness_result = correctness(df)
+    # print(f"Correctness: {correctness_result['correctness']}")
 if __name__ == "__main__":
     main()

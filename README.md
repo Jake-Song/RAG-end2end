@@ -137,6 +137,8 @@ uv run python -m scripts.retrieve
 uv run python -m scripts.synthetic_data
 
 # RAG 평가
+# 데이터셋 응답
+uv run python -m scripts.bot_answer
 # LLM as Judge(correctness)
 uv run python -m scripts.correct_eval
 # Recall, F1 score
