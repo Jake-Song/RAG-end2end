@@ -10,7 +10,7 @@ from langchain.schema import Document
 
 class ReciprocalRankFusion:
     
-    k = 60
+    k = 30
        
     @classmethod
     def _calculate_score(cls, rank: int) -> float:

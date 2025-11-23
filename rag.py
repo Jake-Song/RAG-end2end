@@ -73,7 +73,7 @@ def retrieve_document(state: GraphState) -> GraphState:
 
 def rerank_document(state: GraphState) -> GraphState:
     retrieved_docs = state["documents"]
-    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=2)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=4)
     context = format_context(rrf_docs)
 
     return {"documents": rrf_docs, "context": context}
