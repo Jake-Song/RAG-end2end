@@ -2,14 +2,16 @@ def conflict_matrix(retrieved_page_number, reference_page_number):
     true_positives = 0
     false_positives = 0
     false_negatives = 0
-    for i, page in enumerate(retrieved_page_number):
+
+    for page in retrieved_page_number:
         if page in reference_page_number:
             true_positives += 1
-        elif i <= len(reference_page_number)-1 and page not in reference_page_number:
+        else:
             false_positives += 1
+    
+    for page in reference_page_number:
+        if page not in retrieved_page_number:
             false_negatives += 1
-        elif i > len(reference_page_number)-1 and page not in reference_page_number:
-            false_positives += 1
             
     return true_positives, false_positives, false_negatives
 
@@ -46,16 +48,16 @@ def test_all_match_but_wrong_page():
     assert false_positives == 3
     assert false_negatives == 0
 
-
+# 나중에 ref page를 찾은 경우
 def test_wrong_match_then_all_match_page():
     retrieved_page_number = [4, 6, 7, 1, 2, 3]
     reference_page_number = [1, 2, 3]
 
     true_positives, false_positives, false_negatives = conflict_matrix(retrieved_page_number, reference_page_number)
-    print(true_positives, false_positives, false_negatives)
-    # assert true_positives == 3
-    # assert false_positives == 3
-    # assert false_negatives == 0
+    # print(true_positives, false_positives, false_negatives)
+    assert true_positives == 3
+    assert false_positives == 3
+    assert false_negatives == 0
 
 # ref page를 일부 찾고 잘 못된 페이지를 찾은 경우
 def test_partial_match_but_wrong_page():

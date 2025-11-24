@@ -15,10 +15,10 @@ def recall(df: pd.DataFrame) -> dict:
         # 중복 페이지 제거
         reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
         retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
-        for i, page in enumerate(retrieved_page_number):
-            if page in reference_page_number:
+        for page in reference_page_number:
+            if page in retrieved_page_number:
                 true_positives += 1
-            elif i <= len(reference_page_number)-1 and page not in reference_page_number:
+            else:
                 false_negatives += 1
 
     print(f"True Positives: {true_positives}, False Negatives: {false_negatives}")
@@ -37,38 +37,19 @@ def f1_score(df: pd.DataFrame) -> dict:
         reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
         retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
         
-        for i, page in enumerate(retrieved_page_number):
-            """
-            정답지 (reference_page_numer)를 찾은 경우 true_positives +1
-            정답지 (reference_page_numer)를 못 찾은 경우 false_negatives +1, false_positives +1
-            정답지 (reference_page_numer)를 찾았지만 오답을 찾은 경우 false_positives +1
-            예시)
-            - ref page를 전부 찾은 경우
-                reference_page_number: [1, 2, 3]
-                retrieved_page_number: [1, 2, 3]
-                true_positives: 3, false_positives: 0, false_negatives: 0
-            - ref page를 일부 찾고 잘 못된 페이지를 찾은 경우:
-                reference_page_number: [1, 2, 3]
-                retrieved_page_number: [1, 2, 5, 7]
-                true_positives: 2, false_positives: 2, false_negatives: 1
-            - ref page를 전부 찾고 잘 못된 페이지를 찾은 경우:  
-                reference_page_number: [1, 2, 3]
-                retrieved_page_number: [1, 2, 3, 4, 6, 7]
-                true_positives: 3, false_positives: 3, false_negatives: 0
-            """
-            # ref page를 찾은 경우
+        # 정답지 (reference_page_numer)를 찾은 경우 true_positives +1
+        # 정답지 (reference_page_numer)를 못 찾은 경우 false_negatives +1, false_positives +1
+        # 정답지 (reference_page_numer)를 찾았지만 오답을 찾은 경우 false_positives +1
+        for page in retrieved_page_number:
             if page in reference_page_number:
                 true_positives += 1
-
-            # ref page를 일부 찾고 잘 못된 페이지를 찾은 경우
-            elif i <= len(reference_page_number)-1 and page not in reference_page_number:
+            else:
                 false_positives += 1
+        
+        for page in reference_page_number:
+            if page not in retrieved_page_number:
                 false_negatives += 1
-
-            # ref page를 전부 찾고 잘 못된 페이지를 찾은 경우
-            elif i > len(reference_page_number)-1 and page not in reference_page_number:
-                false_positives += 1
-
+                
     if true_positives == 0:
         return {"f1_score": 0.0, "precision": 0.0, "recall": 0.0}
 
