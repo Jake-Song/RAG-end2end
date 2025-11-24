@@ -11,13 +11,15 @@ from reranker.rrf import ReciprocalRankFusion
 
 class TestReciprocalRankFusion:
     """Test suite for ReciprocalRankFusion class"""
+    def setup_method(self):
+        self.k = 30
 
     def test_calculate_score(self):
         """Test the _calculate_score method"""
         # Test with default k=60
-        assert ReciprocalRankFusion._calculate_score(1) == 1 / (60 + 1)  # 1/61
-        assert ReciprocalRankFusion._calculate_score(2) == 1 / (60 + 2)  # 1/62
-        assert ReciprocalRankFusion._calculate_score(10) == 1 / (60 + 10)  # 1/70
+        assert ReciprocalRankFusion._calculate_score(1) == 1 / (self.k + 1)  # 1/61
+        assert ReciprocalRankFusion._calculate_score(2) == 1 / (self.k + 2)  # 1/62
+        assert ReciprocalRankFusion._calculate_score(10) == 1 / (self.k + 10)  # 1/70
         
         # Verify score decreases as rank increases
         score_1 = ReciprocalRankFusion._calculate_score(1)
@@ -41,7 +43,7 @@ class TestReciprocalRankFusion:
         # Check that rank_score was added to each document
         for i, doc in enumerate(result):
             assert "rank_score" in doc.metadata
-            expected_score = 1 / (60 + i + 1)  # rank is i+1
+            expected_score = 1 / (self.k + i + 1)  # rank is i+1
             assert abs(doc.metadata["rank_score"] - expected_score) < 1e-10
 
     def test_get_rrf_docs_basic(self):
@@ -49,19 +51,19 @@ class TestReciprocalRankFusion:
         # Create test documents with rank_score already assigned
         doc1 = Document(
             page_content="Content 1",
-            metadata={"id": 1, "page": 1, "rank_score": 1 / (60 + 1)}
+            metadata={"id": 1, "page": 1, "rank_score": 1 / (self.k + 1)}
         )
         doc2 = Document(
             page_content="Content 2",
-            metadata={"id": 2, "page": 1, "rank_score": 1 / (60 + 2)}
+            metadata={"id": 2, "page": 1, "rank_score": 1 / (self.k + 2)}
         )
         doc3 = Document(
             page_content="Content 3",
-            metadata={"id": 3, "page": 2, "rank_score": 1 / (60 + 1)}
+            metadata={"id": 3, "page": 2, "rank_score": 1 / (self.k + 1)}
         )
         doc4 = Document(
             page_content="Content 4",
-            metadata={"id": 4, "page": 2, "rank_score": 1 / (60 + 2)}
+            metadata={"id": 4, "page": 2, "rank_score": 1 / (self.k + 2)}
         )
 
         docs = [doc1, doc2, doc3, doc4]
@@ -85,19 +87,19 @@ class TestReciprocalRankFusion:
         # Create documents with overlapping IDs
         doc1 = Document(
             page_content="Content 1",
-            metadata={"id": 1, "page": 1, "rank_score": 1 / (60 + 1)}
+            metadata={"id": 1, "page": 1, "rank_score": 1 / (self.k + 1)}
         )
         doc2 = Document(
             page_content="Content 2",
-            metadata={"id": 2, "page": 1, "rank_score": 1 / (60 + 2)}
+            metadata={"id": 2, "page": 1, "rank_score": 1 / (self.k + 2)}
         )
         doc2_dup = Document(
             page_content="Content 2 duplicate",
-            metadata={"id": 2, "page": 1, "rank_score": 1 / (60 + 1)}
+            metadata={"id": 2, "page": 1, "rank_score": 1 / (self.k + 1)}
         )
         doc3 = Document(
             page_content="Content 3",
-            metadata={"id": 3, "page": 2, "rank_score": 1 / (60 + 2)}
+            metadata={"id": 3, "page": 2, "rank_score": 1 / (self.k + 2)}
         )
 
         docs = [doc1, doc2, doc2_dup, doc3]
@@ -111,10 +113,11 @@ class TestReciprocalRankFusion:
         doc2_merged = next(doc for doc in result if doc.metadata["id"] == 2)
         
         # The merged document should have combined rank_score
+        # if k = 60,
         # doc2 had score 1/(60+2) = 1/62
         # doc2_dup had score 1/(60+1) = 1/61
         # Combined: 1/62 + 1/61
-        expected_score = 1 / (60 + 2) + 1 / (60 + 1)
+        expected_score = 1 / (self.k + 2) + 1 / (self.k + 1)
         assert abs(doc2_merged.metadata["rank_score"] - expected_score) < 1e-10
 
     def test_get_rrf_docs_cutoff(self):
@@ -123,7 +126,7 @@ class TestReciprocalRankFusion:
         docs = [
             Document(
                 page_content=f"Content {i}",
-                metadata={"id": i, "page": 1, "rank_score": 1 / (60 + i + 1)}
+                metadata={"id": i, "page": 1, "rank_score": 1 / (self.k + i + 1)}
             )
             for i in range(10)
         ]
@@ -150,19 +153,19 @@ class TestReciprocalRankFusion:
         # Create documents that will have different scores after merging
         doc1 = Document(
             page_content="Content 1",
-            metadata={"id": 1, "page": 1, "rank_score": 1 / (60 + 1)}
+            metadata={"id": 1, "page": 1, "rank_score": 1 / (self.k + 1)}
         )
         doc2 = Document(
             page_content="Content 2",
-            metadata={"id": 2, "page": 1, "rank_score": 1 / (60 + 2)}
+            metadata={"id": 2, "page": 1, "rank_score": 1 / (self.k + 2)}
         )
         doc1_dup = Document(
             page_content="Content 1 dup",
-            metadata={"id": 1, "page": 1, "rank_score": 1 / (60 + 1)}
+            metadata={"id": 1, "page": 1, "rank_score": 1 / (self.k + 1)}
         )
         doc3 = Document(
             page_content="Content 3",
-            metadata={"id": 3, "page": 1, "rank_score": 1 / (60 + 2)}
+            metadata={"id": 3, "page": 1, "rank_score": 1 / (self.k + 2)}
         )
 
         # doc1 appears twice (will have higher combined score)
@@ -181,11 +184,11 @@ class TestReciprocalRankFusion:
         """Test that original metadata is preserved in merged documents"""
         doc1 = Document(
             page_content="Content 1",
-            metadata={"id": 1, "page": 1, "source": "test.pdf", "rank_score": 1 / (60 + 1)}
+            metadata={"id": 1, "page": 1, "source": "test.pdf", "rank_score": 1 / (self.k + 1)}
         )
         doc2 = Document(
             page_content="Content 2",
-            metadata={"id": 2, "page": 2, "source": "test.pdf", "rank_score": 1 / (60 + 1)}
+            metadata={"id": 2, "page": 2, "source": "test.pdf", "rank_score": 1 / (self.k + 1)}
         )
 
         result = ReciprocalRankFusion.get_rrf_docs([doc1, doc2], cutoff=10)
@@ -203,13 +206,13 @@ class TestReciprocalRankFusion:
         for i in range(5):
             docs.append(Document(
                 page_content=f"Content {i}",
-                metadata={"id": i, "page": 1, "rank_score": 1 / (60 + i + 1)}
+                metadata={"id": i, "page": 1, "rank_score": 1 / (self.k + i + 1)}
             ))
         # Add duplicates for first 3
         for i in range(3):
             docs.append(Document(
                 page_content=f"Content {i} dup",
-                metadata={"id": i, "page": 1, "rank_score": 1 / (60 + i + 1)}
+                metadata={"id": i, "page": 1, "rank_score": 1 / (self.k + i + 1)}
             ))
 
         result = ReciprocalRankFusion.get_rrf_docs(docs, cutoff=10)
@@ -221,13 +224,13 @@ class TestReciprocalRankFusion:
         for i in range(3):
             doc = next(doc for doc in result if doc.metadata["id"] == i)
             # Score from first occurrence + score from duplicate
-            expected_score = 1 / (60 + i + 1) + 1 / (60 + i + 1)
+            expected_score = 1 / (self.k + i + 1) + 1 / (self.k + i + 1)
             assert abs(doc.metadata["rank_score"] - expected_score) < 1e-10
 
         # Last 2 should have single scores
         for i in range(3, 5):
             doc = next(doc for doc in result if doc.metadata["id"] == i)
-            expected_score = 1 / (60 + i + 1)
+            expected_score = 1 / (self.k + i + 1)
             assert abs(doc.metadata["rank_score"] - expected_score) < 1e-10
 
 
