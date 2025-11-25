@@ -143,17 +143,19 @@ def remove_metadata(objects) -> list:
         del object.metadata['id']
     return objects
 
-def save_docs(docs) -> None:
+def save_docs(docs) -> list:
     with open(f'{output_path_prefix}_docs.pkl', 'wb') as f:
         pickle.dump(docs, f)
+    return docs
 
-def save_markdown(docs) -> None:
+def save_markdown(docs) -> str:
     arr = []
     for doc in docs:
         arr.append(doc.page_content)
     markdown = "\n".join(arr)
     with open(f'{output_path_prefix}_markdown.md', 'w') as f:
         f.write(markdown)
+    return markdown
 
 def main():
 

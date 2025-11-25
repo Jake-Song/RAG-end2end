@@ -75,7 +75,7 @@ def generate_data(llm: ChatUpstage, queries: list[list[dict]]) -> list[Synthetic
     responses = model_with_structure.batch(queries)
     return responses
 
-def save_data(responses: list[SyntheticData], pairs: list[tuple[int, int]]) -> None:
+def save_data(responses: list[SyntheticData], pairs: list[tuple[int, int]]) -> pd.DataFrame:
     arr = []
     
     for r, pair in zip(responses, pairs):
@@ -89,6 +89,7 @@ def save_data(responses: list[SyntheticData], pairs: list[tuple[int, int]]) -> N
     
     df = pd.DataFrame(arr)
     df.to_csv(f"{output_path_prefix}_synthetic.csv", index=True)
+    return df
 
 def main():
     with open(f"{output_path_prefix}_docs.pkl", "rb") as f:
