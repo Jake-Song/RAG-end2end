@@ -7,7 +7,7 @@ Kiwi BM25와 FAISS를 결합한 앙상블 리트리버를 생성
 from langchain_openai import OpenAIEmbeddings
 from langchain_upstage import UpstageEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.retrievers import BM25Retriever, EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
 import pickle
 
 from config import output_path_prefix
@@ -30,11 +30,7 @@ def create_retriever(split_documents, embeddings, kiwi=False):
         bm25_retriever = BM25Retriever.from_documents(split_documents)
     bm25_retriever.k = 1
     
-    ensemble_retriever = EnsembleRetriever(
-        retrievers=[bm25_retriever, faiss_retriever],
-        weights=[0.7, 0.3],
-    )
-    return ensemble_retriever, faiss_retriever, bm25_retriever
+    return faiss_retriever, bm25_retriever
 
 def save_retriever(split_documents, embeddings):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
@@ -53,11 +49,7 @@ def load_retriever(split_documents, embeddings, kiwi=False, search_k=1):
         bm25_retriever = BM25Retriever.from_documents(split_documents)
     bm25_retriever.k = search_k
     
-    ensemble_retriever = EnsembleRetriever(
-        retrievers=[bm25_retriever, faiss_retriever],
-        weights=[0.7, 0.3],
-    )
-    return ensemble_retriever, bm25_retriever, faiss_retriever
+    return bm25_retriever, faiss_retriever
 
 def main():
     with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:

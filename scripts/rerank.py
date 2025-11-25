@@ -9,7 +9,7 @@ with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
 
 embeddings = UpstageEmbeddings(model="embedding-passage")
 
-_, bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=True, search_k=10)
+bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=True, search_k=10)
 
 def rerank_RRF(question, cutoff):
     rrf_docs = ReciprocalRankFusion.get_rrf_docs(faiss_retriever.invoke(question), bm25_retriever.invoke(question), cutoff)

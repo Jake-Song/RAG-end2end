@@ -5,7 +5,7 @@ d: 문서
 k: 상수
 rank_i(d): 리트리버 i에 대한 문서 d의 순위
 """
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 
 class ReciprocalRankFusion:

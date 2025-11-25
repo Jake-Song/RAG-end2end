@@ -20,3 +20,6 @@ results
 
 # env
 .env
+
+# langgraph
+.langgraph_api/

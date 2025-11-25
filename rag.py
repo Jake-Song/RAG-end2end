@@ -12,7 +12,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_openai import ChatOpenAI
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
-from langchain.schema import Document
+from langchain_core.documents import Document
 import pickle
 import time
 from utils.utils import format_context
@@ -21,13 +21,6 @@ from reranker.rrf import ReciprocalRankFusion
 # from reranker.cohere import cohere_reranker
 # from reranker.cross_encoder import cross_encoder_reranker
 from config import output_path_prefix
-
-# LangSmith 추적을 설정합니다. https://smith.langchain.com
-# !pip install -qU langchain-teddynote
-from langchain_teddynote import logging
-
-# 프로젝트 이름을 입력합니다.
-logging.langsmith("Langgraph")
 
 # GraphState 상태 정의: 그래프 노드 간 전달되는 데이터 구조
 class GraphState(TypedDict):
@@ -53,8 +46,8 @@ def get_ensemble_retriever():
 
         # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
         embeddings = UpstageEmbeddings(model="embedding-passage")
-        _ensemble_retriever, _bm25_retriever, _faiss_retriever = load_retriever(split_documents, embeddings, kiwi=True, search_k=10)
-    return _ensemble_retriever, _bm25_retriever, _faiss_retriever
+        _bm25_retriever, _faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
+    return _bm25_retriever, _faiss_retriever
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: GraphState) -> GraphState:
@@ -62,7 +55,7 @@ def retrieve_document(state: GraphState) -> GraphState:
 
     # 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
     # BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
-    _, bm25_retriever, faiss_retriever = get_ensemble_retriever()
+    bm25_retriever, faiss_retriever = get_ensemble_retriever()
     retrieved_docs_faiss = faiss_retriever.invoke(latest_question)
     retrieved_docs_bm25 = bm25_retriever.invoke(latest_question)
     retrieved_docs_faiss = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_faiss)
@@ -153,9 +146,9 @@ def preload():
 
 def rag_bot_invoke(question: str) -> dict:
     from langchain_core.runnables import RunnableConfig
-    from langchain_teddynote.messages import random_uuid
+    import uuid
 
-    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": random_uuid()})
+    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
 
     app = get_app()
     inputs = {"question": question}
@@ -164,9 +157,9 @@ def rag_bot_invoke(question: str) -> dict:
     
 def rag_bot_batch(questions: list[str]) -> dict:
     from langchain_core.runnables import RunnableConfig
-    from langchain_teddynote.messages import random_uuid
+    import uuid
 
-    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": random_uuid()})
+    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
 
     app = get_app()
     inputs = [{"question": question} for question in questions]

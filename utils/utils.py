@@ -4,7 +4,7 @@ Utility functions
 
 """
 
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 def format_context(retrieved_docs: list[Document]) -> str:
     contexts = []
