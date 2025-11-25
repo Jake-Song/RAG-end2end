@@ -23,7 +23,7 @@ load_dotenv()
 
 from config import input_file, image_output_path_prefix, output_path_prefix
 
-def get_json_arr() -> list:
+def get_json_arr(input_file) -> list:
     # 분할 PDF 파일 목록 조회
     short_input_files = glob(os.path.splitext(input_file)[0] + "_*.pdf")
     
@@ -159,7 +159,7 @@ def save_markdown(docs) -> str:
 
 def main():
 
-    json_data_arr = get_json_arr()
+    json_data_arr = get_json_arr(input_file)
     flattened = flatten_json(json_data_arr)
     print("📄 문서 생성 완료")
     

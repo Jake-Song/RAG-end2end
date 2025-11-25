@@ -4,6 +4,7 @@ from graph.chunker import chunker
 from graph.reranker import reranker
 from graph.gen_data import data_generater
 from graph.bot_answer import bot_answer
+from graph.human_feedback import human_feedback
 from rag import get_app
 from utils.utils import format_context
 from langgraph.checkpoint.memory import MemorySaver
@@ -26,3 +27,4 @@ workflow.add_node("reranker", reranker)
 workflow.add_node("llm", get_app())
 workflow.add_node("data_generater", data_generater)
 workflow.add_node("bot_answer", bot_answer)
+workflow.add_node("human_feedback", human_feedback)

@@ -4,12 +4,13 @@ from langgraph.graph import StateGraph, START, END
 from scripts.parse import *
 
 class ParseState(TypedDict):
+    input_file: str
     data: list[dict]
     docs: list[Document]
     markdown: str
 
 def get_json_arr(state: ParseState) -> ParseState:
-    json_data_arr = get_json_arr()
+    json_data_arr = get_json_arr(state["input_file"])
     return {
         "data": json_data_arr
     }
@@ -71,4 +72,8 @@ parser = (
     .compile()
 )
 
+if __name__ == "__main__":
+    parser.get_graph().draw_mermaid_png()
+    result = parser.invoke({"input_file": input_file})
+    print(result)
 
