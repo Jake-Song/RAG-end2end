@@ -55,3 +55,13 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.setuptools.packages.find]
+# Explicitly include the packages you want to distribute/install
+include = ["scripts", "utils", "reranker", "evaluators"]
+# (Optional) Explicitly exclude things to be safe
+exclude = ["data", "dev", "images", "outputs", "faiss_index", "test"]
+
+[tool.uv.workspace]
+members = [
+    ".",
+]
