@@ -8,19 +8,15 @@ LangGraph RAG 모델
 """
 
 from typing import Annotated, TypedDict
-from langgraph.graph import END, StateGraph
-from langgraph.checkpoint.memory import MemorySaver
+import pickle
 from langchain.messages import AIMessage
-from langchain_openai import ChatOpenAI
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
 from langchain_core.documents import Document
-import pickle
-import time
+from langgraph.graph import START,END, StateGraph
+from langgraph.checkpoint.memory import MemorySaver
 from utils.utils import format_context
-from scripts.retrieve import create_retriever, load_retriever
+from scripts.retrieve import load_retriever
 from reranker.rrf import ReciprocalRankFusion
-# from reranker.cohere import cohere_reranker
-# from reranker.cross_encoder import cross_encoder_reranker
 from config import output_path_prefix
 
 # GraphState 상태 정의: 그래프 노드 간 전달되는 데이터 구조
@@ -31,24 +27,13 @@ class GraphState(TypedDict):
     documents: Annotated[list[Document], "Documents"]
     page_number: Annotated[list[int], "Page Number"]
 
-# 전역 변수로 캐싱 (lazy loading)
-_ensemble_retriever = None
-_app = None
-
 def get_ensemble_retriever():
-    """앙상블 리트리버를 lazy loading으로 가져옵니다 (최초 1회만 로드)"""
-    global _ensemble_retriever
-    global _faiss_retriever
-    global _bm25_retriever
+    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+        split_documents = pickle.load(f)
 
-    if _ensemble_retriever is None:
-        with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
-            split_documents = pickle.load(f)
-
-        # 앙상블 리트리버 로드: BM25 + FAISS 벡터 검색을 결합한 하이브리드 검색기
         embeddings = UpstageEmbeddings(model="embedding-passage")
-        _bm25_retriever, _faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
-    return _bm25_retriever, _faiss_retriever
+    bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
+    return bm25_retriever, faiss_retriever
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: GraphState) -> GraphState:
@@ -72,16 +57,9 @@ def rerank_document(state: GraphState) -> GraphState:
 
     return {"documents": rrf_docs, "context": context}
 
-# def rerank_document(state: GraphState) -> GraphState:
-#     latest_question = state["question"]
-#     compressed_docs = cross_encoder_reranker(latest_question)
-#     context = format_context(compressed_docs)
-#     return {"documents": compressed_docs, "context": context}
-
 # 답변 생성 노드: LLM을 사용하여 검색된 문서를 기반으로 답변 생성
 def llm_answer(state: GraphState) -> GraphState:
-    start_time = time.time()
-
+    
     latest_question = state["question"]
     context = state["context"]
 
@@ -107,43 +85,23 @@ def llm_answer(state: GraphState) -> GraphState:
     for doc in state["documents"]:
         page_number.append(doc.metadata["page"])
 
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"LLM answer generation time: {execution_time:.2f} seconds")
-
     return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
 
 def get_app():
-    """LangGraph 앱을 lazy loading으로 가져옵니다 (최초 1회만 컴파일)"""
-    global _app
-    if _app is None:
-        ensemble_retriever = get_ensemble_retriever()
-        workflow = StateGraph(GraphState, ensemble_retriever=ensemble_retriever)
-        # workflow = StateGraph(GraphState)
-        workflow.add_node("retrieve", retrieve_document)
-        workflow.add_node("rerank", rerank_document)
-        workflow.add_node("llm_answer", llm_answer)
+    workflow = StateGraph(GraphState)
+    workflow.add_node("retrieve", retrieve_document)
+    workflow.add_node("rerank", rerank_document)
+    workflow.add_node("llm_answer", llm_answer)
 
-        workflow.add_edge("retrieve", "rerank")
-        workflow.add_edge("rerank", "llm_answer")
-        workflow.add_edge("llm_answer", END)
+    workflow.add_edge(START, "retrieve")
+    workflow.add_edge("retrieve", "rerank")
+    workflow.add_edge("rerank", "llm_answer")
+    workflow.add_edge("llm_answer", END)
 
-        workflow.set_entry_point("retrieve")
-        # workflow.set_entry_point("rerank")
+    memory = MemorySaver()
 
-        memory = MemorySaver()
-
-        _app = workflow.compile(checkpointer=memory)
-    return _app
-
-def preload():
-    """CLI 실행 시 모든 리소스를 미리 로드합니다"""
-    print("Loading RAG system...")
-    start_time = time.time()
-    get_app()  # 이 함수가 내부적으로 get_ensemble_retriever()도 호출함
-    load_time = time.time() - start_time
-    print(f"RAG system loaded in {load_time:.2f} seconds")
-    return load_time
+    app = workflow.compile(checkpointer=memory)
+    return app
 
 def rag_bot_invoke(question: str) -> dict:
     from langchain_core.runnables import RunnableConfig
@@ -182,8 +140,6 @@ def rag_bot_batch(questions: list[str]) -> dict:
 
 if __name__ == "__main__":
     import sys
-
-    preload()
 
     # 인자가 주어진 경우 단일 질문 모드
     if len(sys.argv) > 1:

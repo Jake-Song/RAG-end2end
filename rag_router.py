@@ -1,13 +1,13 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Annotated, TypedDict
+from typing_extensions import Literal
 from langchain_upstage import ChatUpstage
 from langchain.messages import SystemMessage, HumanMessage
 from langgraph.types import Send
-from typing import Annotated, TypedDict
 from langgraph.graph import StateGraph, START, END
 import operator
 from rag import rag_bot_graph
-from typing_extensions import Literal
+
 llm = ChatUpstage(model="solar-pro2", temperature=0)
 
 # Schema for structured output to use in planning
@@ -18,7 +18,6 @@ class Query(BaseModel):
     reasoning: str = Field(
         description="reasoning how this query is related to the question.",
     )
-
 
 class Queries(BaseModel):
     queries: List[Query] = Field(
@@ -34,7 +33,6 @@ router = llm.with_structured_output(Route)
 planner = llm.with_structured_output(Queries)
 
 
-
 # Graph state
 class State(TypedDict):
     question: str  # Report topic
@@ -44,7 +42,6 @@ class State(TypedDict):
     ]  # All workers write to this key in parallel
     final_answer: str  # Final report
     decision: str
-
 
 # Worker state
 class WorkerState(TypedDict):
@@ -60,7 +57,7 @@ def llm_call_router(state: State):
     decision = router.invoke(
         [
             SystemMessage(
-                content="Route the question to single query or orchestrator based on the user's request."
+                content="Route the question to single query or multi query based on the user's request."
             ),
             HumanMessage(content=state["question"]),
         ]
@@ -74,15 +71,15 @@ def route_decision(state: State):
     if state["decision"] == "single":
         return "single_query"
     elif state["decision"] == "multi":
-        return "orchestrator"
+        return "multi_query"
 
 # Nodes
 def single_query(state: State):
     result = rag_bot_graph(state["question"])
     return {"final_answer": result.content}
 
-def orchestrator(state: State):
-    """Orchestrator that generates queries for the question"""
+def multi_query(state: State):
+    """Multi query that generates queries for the question"""
 
     # Generate queries
     queries = planner.invoke(
@@ -138,7 +135,7 @@ router_builder = StateGraph(State)
 # Add nodes
 router_builder.add_node("single_query", single_query)
 router_builder.add_node("llm_call_router", llm_call_router)
-router_builder.add_node("orchestrator", orchestrator)
+router_builder.add_node("multi_query", multi_query)
 router_builder.add_node("llm_call", llm_call)
 router_builder.add_node("synthesizer", synthesizer)
 
@@ -149,12 +146,12 @@ router_builder.add_conditional_edges(
     route_decision,
     {  # Name returned by route_decision : Name of next node to visit
         "single_query": "single_query",
-        "orchestrator": "orchestrator",
+        "multi_query": "multi_query",
     },
 )
 router_builder.add_edge("single_query", END)
 router_builder.add_conditional_edges(
-    "orchestrator", assign_workers, ["llm_call"]
+    "multi_query", assign_workers, ["llm_call"]
 )
 router_builder.add_edge("llm_call", "synthesizer")
 router_builder.add_edge("synthesizer", END)
