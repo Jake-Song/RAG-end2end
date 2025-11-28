@@ -10,6 +10,7 @@ LangGraph RAG 모델
 from typing import Annotated, TypedDict
 from langgraph.graph import END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
+from langchain.messages import AIMessage
 from langchain_openai import ChatOpenAI
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
 from langchain_core.documents import Document
@@ -155,6 +156,18 @@ def rag_bot_invoke(question: str) -> dict:
     result = app.invoke(inputs, config)
     return {'answer': result['answer'], 'documents': result['documents'], 'page_number': result['page_number']}
     
+
+def rag_bot_graph(prompt: str) -> dict:
+    from langchain_core.runnables import RunnableConfig
+    import uuid
+
+    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
+
+    app = get_app()
+    inputs = {"question": prompt}
+    result = app.invoke(inputs, config)
+    return AIMessage(content=result['answer'])
+
 def rag_bot_batch(questions: list[str]) -> dict:
     from langchain_core.runnables import RunnableConfig
     import uuid
