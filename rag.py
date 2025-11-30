@@ -8,7 +8,6 @@ LangGraph RAG 모델
 """
 
 from typing import Annotated, TypedDict
-import pickle
 from langchain.messages import AIMessage
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
 from langchain_core.documents import Document
@@ -18,8 +17,17 @@ from utils.utils import format_context
 from scripts.retrieve import load_retriever
 from reranker.rrf import ReciprocalRankFusion
 from config import output_path_prefix
+import pickle
 
-# GraphState 상태 정의: 그래프 노드 간 전달되는 데이터 구조
+with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+    split_documents = pickle.load(f)
+
+def get_ensemble_retriever():
+    embeddings = UpstageEmbeddings(model="embedding-passage")
+    bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
+    return bm25_retriever, faiss_retriever
+
+
 class GraphState(TypedDict):
     question: Annotated[str, "Question"]
     context: Annotated[str, "Context"]
@@ -27,15 +35,8 @@ class GraphState(TypedDict):
     documents: Annotated[list[Document], "Documents"]
     page_number: Annotated[list[int], "Page Number"]
 
-def get_ensemble_retriever():
-    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
-        split_documents = pickle.load(f)
 
-        embeddings = UpstageEmbeddings(model="embedding-passage")
-    bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
-    return bm25_retriever, faiss_retriever
-
-# 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
+# 노드
 def retrieve_document(state: GraphState) -> GraphState:
     latest_question = state["question"]
 
@@ -63,8 +64,6 @@ def llm_answer(state: GraphState) -> GraphState:
     latest_question = state["question"]
     context = state["context"]
 
-    # OpenAI LLM 초기화 (temperature=0: 결정적 답변 생성)
-    # llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
     llm = ChatUpstage(model="solar-pro2", temperature=0.0)
 
     system_prompt = """You are an assistant for question-answering tasks.
@@ -87,21 +86,20 @@ def llm_answer(state: GraphState) -> GraphState:
 
     return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
 
-def get_app():
-    workflow = StateGraph(GraphState)
-    workflow.add_node("retrieve", retrieve_document)
-    workflow.add_node("rerank", rerank_document)
-    workflow.add_node("llm_answer", llm_answer)
+workflow = StateGraph(GraphState)
+workflow.add_node("retrieve", retrieve_document)
+workflow.add_node("rerank", rerank_document)
+workflow.add_node("llm_answer", llm_answer)
 
-    workflow.add_edge(START, "retrieve")
-    workflow.add_edge("retrieve", "rerank")
-    workflow.add_edge("rerank", "llm_answer")
-    workflow.add_edge("llm_answer", END)
+workflow.add_edge(START, "retrieve")
+workflow.add_edge("retrieve", "rerank")
+workflow.add_edge("rerank", "llm_answer")
+workflow.add_edge("llm_answer", END)
 
-    memory = MemorySaver()
+memory = MemorySaver()
 
-    app = workflow.compile(checkpointer=memory)
-    return app
+app = workflow.compile(checkpointer=memory)
+    
 
 def rag_bot_invoke(question: str) -> dict:
     from langchain_core.runnables import RunnableConfig
@@ -109,22 +107,9 @@ def rag_bot_invoke(question: str) -> dict:
 
     config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
 
-    app = get_app()
     inputs = {"question": question}
     result = app.invoke(inputs, config)
     return {'answer': result['answer'], 'documents': result['documents'], 'page_number': result['page_number']}
-    
-
-def rag_bot_graph(prompt: str) -> dict:
-    from langchain_core.runnables import RunnableConfig
-    import uuid
-
-    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
-
-    app = get_app()
-    inputs = {"question": prompt}
-    result = app.invoke(inputs, config)
-    return AIMessage(content=result['answer'])
 
 def rag_bot_batch(questions: list[str]) -> dict:
     from langchain_core.runnables import RunnableConfig
@@ -132,11 +117,20 @@ def rag_bot_batch(questions: list[str]) -> dict:
 
     config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
 
-    app = get_app()
     inputs = [{"question": question} for question in questions]
 
     results = app.batch(inputs, config)
-    return results
+    return results    
+
+def rag_bot_graph(prompt: str) -> dict:
+    from langchain_core.runnables import RunnableConfig
+    import uuid
+
+    config = RunnableConfig(recursion_limit=20, configurable={"thread_id": uuid.uuid4()})
+
+    inputs = {"question": prompt}
+    result = app.invoke(inputs, config)
+    return AIMessage(content=result['answer'])
 
 if __name__ == "__main__":
     import sys

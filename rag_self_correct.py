@@ -1,20 +1,20 @@
+from typing import Annotated, TypedDict, Literal
+from pydantic import BaseModel, Field
 from langchain_core.documents import Document
 from langgraph.graph import add_messages
 from langchain.tools import tool
-from typing import Annotated, TypedDict, Literal
 from langchain.messages import ToolMessage, HumanMessage, AnyMessage
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
-from pydantic import BaseModel, Field
-
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import tools_condition
-
-from scripts.retrieve import create_retriever, load_retriever
+from scripts.retrieve import load_retriever
 from utils.utils import format_context
 from reranker.rrf import ReciprocalRankFusion
 from config import output_path_prefix
-
 import pickle
+
+with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+        split_documents = pickle.load(f)
 
 @tool
 def retriever(query: str) -> list[Document]:
@@ -23,8 +23,6 @@ def retriever(query: str) -> list[Document]:
     Args:
         query: The query to retrieve documents from the vector database.
     """
-    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
-        split_documents = pickle.load(f)
     embeddings = UpstageEmbeddings(model="embedding-passage")
     bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
     retrieved_docs_faiss = faiss_retriever.invoke(query)
@@ -66,6 +64,13 @@ def generate_query_or_respond(state: GraphState):
     )
     return {"messages": [response]}
 
+class GradeDocuments(BaseModel):  
+    """Grade documents using a binary score for relevance check."""
+
+    binary_score: str = Field(
+        description="Relevance score: 'yes' if relevant, or 'no' if not relevant"
+    )
+
 GRADE_PROMPT = (
     "You are a grader assessing relevance of a retrieved document to a user question. \n "
     "Here is the retrieved document: \n\n {context} \n\n"
@@ -74,16 +79,7 @@ GRADE_PROMPT = (
     "Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."
 )
 
-class GradeDocuments(BaseModel):  
-    """Grade documents using a binary score for relevance check."""
-
-    binary_score: str = Field(
-        description="Relevance score: 'yes' if relevant, or 'no' if not relevant"
-    )
-
-
 grader_model = ChatUpstage(model="solar-pro2", temperature=0)
-
 
 def grade_documents(
     state: GraphState,
@@ -107,7 +103,6 @@ def grade_documents(
         return "rewrite_question"
 
 
-
 REWRITE_PROMPT = (
     "Look at the input and try to reason about the underlying semantic intent / meaning.\n"
     "Here is the initial question:"
@@ -116,7 +111,6 @@ REWRITE_PROMPT = (
     "\n ------- \n"
     "Formulate an improved question:"
 )
-
 
 def rewrite_question(state: GraphState):
     """Rewrite the original user question."""
@@ -135,7 +129,6 @@ GENERATE_PROMPT = (
     "Context: {context}"
 )
 
-
 def generate_answer(state: GraphState):
     """Generate an answer."""
     question = state["messages"][0].content
@@ -143,8 +136,6 @@ def generate_answer(state: GraphState):
     prompt = GENERATE_PROMPT.format(question=question, context=context)
     response = response_model.invoke([{"role": "user", "content": prompt}])
     return {"messages": [response]}
-
-
 
 workflow = StateGraph(GraphState)
 
