@@ -81,7 +81,7 @@ def prepare_text_summary(docs: list) -> list:
     messages_for_text = []
     for idx, doc in enumerate(docs):
         # TODO: 요약하는 기준을 더 좋은 방법으로 수정
-        if word_count(doc.page_content) > 1000:
+        if word_count(doc.page_content) > 200:
             context = doc.page_content
             message = {
                         "page": doc.metadata["page"],
@@ -143,7 +143,7 @@ def split_docs(docs: list) -> list:
     return split_documents
 
 def save_text(split_documents: list) -> None:
-    # 청킹 구분 확인하기 위해 문서 저장장
+    # 청킹 구분 확인하기 위해 문서 저장
     delimiter = "\n\n\n" + ("---" * 50) + "\n\n\n"
     split_documents_text = delimiter.join([doc.page_content for doc in split_documents])
     with open(f"{output_path_prefix}_split_documents.txt", "w", encoding="utf-8") as f:

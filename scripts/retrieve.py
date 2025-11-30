@@ -10,7 +10,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
 import pickle
 
-from config import output_path_prefix
+from config import output_path_prefix, FILE_NAME
 
 # 토큰화 함수를 생성
 def kiwi_tokenize(text):
@@ -34,12 +34,13 @@ def create_retriever(split_documents, embeddings, kiwi=False):
 
 def save_retriever(split_documents, embeddings):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
-    vectorstore.save_local("faiss_index")
+    vectorstore.save_local(f"faiss_index", FILE_NAME)
 
 def load_retriever(split_documents, embeddings, kiwi=False, search_k=1):
     vectorstore = FAISS.load_local(
         "faiss_index", 
         embeddings,
+        FILE_NAME,
         allow_dangerous_deserialization=True  # needed in newer versions
     )
     faiss_retriever = vectorstore.as_retriever(search_kwargs={"k": search_k})
@@ -57,7 +58,7 @@ def main():
 
     # embeddings = OpenAIEmbeddings()    
     embeddings = UpstageEmbeddings(model="embedding-passage")
-    _, _, _ = create_retriever(split_documents, embeddings, kiwi=True)
+    create_retriever(split_documents, embeddings, kiwi=False)
     save_retriever(split_documents, embeddings)
     print("✅ 모든 작업 완료")
 if __name__ == "__main__":

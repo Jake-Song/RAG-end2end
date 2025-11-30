@@ -2,8 +2,7 @@ from langchain_core.documents import Document
 from langgraph.graph import add_messages
 from langchain.tools import tool
 from typing import Annotated, TypedDict, Literal
-from langchain_core.messages import AnyMessage
-from langchain.messages import ToolMessage, HumanMessage
+from langchain.messages import ToolMessage, HumanMessage, AnyMessage
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
 from pydantic import BaseModel, Field
 
