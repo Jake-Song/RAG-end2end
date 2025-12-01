@@ -11,7 +11,8 @@ from langchain_community.retrievers import BM25Retriever
 import pickle
 
 from config import output_path_prefix, FILE_NAME
-
+from pathlib import Path
+project_root = Path(__file__).parent.parent
 # 토큰화 함수를 생성
 def kiwi_tokenize(text):
     from kiwipiepy import Kiwi
@@ -34,11 +35,12 @@ def create_retriever(split_documents, embeddings, kiwi=False):
 
 def save_retriever(split_documents, embeddings):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
-    vectorstore.save_local(f"faiss_index", FILE_NAME)
+    vectorstore.save_local(f"{project_root}/faiss_index", FILE_NAME)
 
 def load_retriever(split_documents, embeddings, kiwi=False, search_k=1):
+    print(f"{project_root}/faiss_index")
     vectorstore = FAISS.load_local(
-        "faiss_index", 
+        f"{project_root}/faiss_index", 
         embeddings,
         FILE_NAME,
         allow_dangerous_deserialization=True  # needed in newer versions
