@@ -12,37 +12,50 @@ from utils.utils import format_context
 from rag import get_ensemble_retriever
 from reranker.rrf import ReciprocalRankFusion
 
-class GraphState(TypedDict):
+class HyDEState(TypedDict):
     question: Annotated[str, "Question"]
-    context: Annotated[list[str], "add"]
+    context: Annotated[list[str], "Context"]
     passage: Annotated[str, "Passage"]
     documents: Annotated[list[Document], "Documents"]
     answer: Annotated[str, "Answer"]
+    is_retrieved: Annotated[bool, "Whether it is retrieved"]
+    is_hyde: Annotated[bool, "Whether it is hyde-transformed"]
 
 
 HYDE_PROMPT = (
-    "Please write a passage to answer the question\n"
-    "Try to include as many key details as possible.\n"
-    "\n\n"
-    "{query_str}\n"
-    "\n\n"
-    'Passage:"""\n'
+    """
+    Please write a passage to answer the question
+    You MUST write a passage from cotent in the given context.
+    Try to include as many key details as possible.
+    
+    Question: {query_str}
+    Context: {context_str}
+    Passage:
+    """
 )
-
 
 hyde_composer = ChatUpstage(model="solar-pro2", temperature=0)
 
+def init_state(state: HyDEState) -> HyDEState:
+    return {"context": [], "is_retrieved": False, "is_hyde": False}
 
-def hyde_transform(state: GraphState) -> GraphState:
-    query_str = state["question"]
-    prompt = HYDE_PROMPT.format(query_str=query_str)
-    response = hyde_composer.invoke(prompt)
-    return {"passage": response.content}
+def hyde_transform(state: HyDEState) -> HyDEState:
+    if state.get("is_retrieved"):
+        query_str = state["question"]
+        context_str = state["context"]
+        prompt = HYDE_PROMPT.format(query_str=query_str, context_str=context_str)
+        response = hyde_composer.invoke(prompt)
+        return {"passage": response.content, "is_hyde": True}
+    else:
+        return {"passage": ""}
 
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
-def retrieve_document(state: GraphState) -> GraphState:
-    latest_question = state["passage"]
+def retrieve_document(state: HyDEState) -> HyDEState:
+    if state["is_retrieved"]:
+        latest_question = state["passage"]
+    else:
+        latest_question = state["question"]
    
     # 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
     # BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
@@ -55,12 +68,12 @@ def retrieve_document(state: GraphState) -> GraphState:
 
     return {"documents": retrieved_docs}
 
-def rerank_document(state: GraphState) -> GraphState:
+def rerank_document(state: HyDEState) -> HyDEState:
     retrieved_docs = state["documents"]
     rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=4)
     context = format_context(rrf_docs)
-
-    return {"documents": rrf_docs, "context": context}
+   
+    return {"documents": rrf_docs, "context": context, "is_retrieved": True}
 
 
 RAG_ANSWER = """
@@ -83,7 +96,7 @@ Answer:
 answer_model = ChatUpstage(model="solar-pro2", temperature=0)
 
 
-def rag_answer(state: GraphState) -> GraphState:
+def rag_answer(state: HyDEState) -> HyDEState:
     question = state["question"]
     passage = state["passage"]
     context = state["context"]
@@ -91,27 +104,43 @@ def rag_answer(state: GraphState) -> GraphState:
     response = answer_model.invoke(prompt)
     return {"answer": response.content}
 
+def recursive_query_router(state: HyDEState) -> Literal["retrieve_document", "aggregate_answer"]:
+    is_hyde_transformed = state["is_hyde"]
+    if is_hyde_transformed:
+        return "rag_answer"
+    else:
+        return "hyde_transform"
 
-
-builder = StateGraph(GraphState)
+builder = StateGraph(HyDEState)
+builder.add_node("init_state", init_state)
 builder.add_node("hyde_transform", hyde_transform)
 builder.add_node("retrieve_document", retrieve_document)
 builder.add_node("rerank_document", rerank_document)
 builder.add_node("rag_answer", rag_answer)
 
-builder.add_edge(START, "hyde_transform")
+builder.add_edge(START, "init_state")
+builder.add_edge("init_state", "hyde_transform")
 builder.add_edge("hyde_transform", "retrieve_document")
 builder.add_edge("retrieve_document", "rerank_document")
-builder.add_edge("rerank_document", "rag_answer")
+builder.add_conditional_edges(
+    "rerank_document",
+    recursive_query_router,
+    {
+        "hyde_transform": "hyde_transform",
+        "rag_answer": "rag_answer"
+    }
+)
+
 builder.add_edge("rag_answer", END)
-checkpoint = MemorySaver()
-graph = builder.compile(checkpointer=checkpoint)
+
+hyde = builder.compile()
 
 if __name__ == "__main__":
+    from pprint import pprint
     config = {"configurable": {"thread_id": "1"}}
     # 넓은 범위의 질문이나 열린 결말의 질문은 부적합함
-    for chunk in graph.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
-        print(chunk)
-    for chunk in graph.stream({"question": "상위 AI 논문 인용 순위 3개는 무엇인가?"}, stream_mode="updates", config=config):
-        print(chunk)
+    # for chunk in hyde.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
+    #     print(chunk)
+    for chunk in hyde.stream({"question": "상위 AI 논문 인용 순위 3개는 무엇인가?"}, stream_mode="updates", config=config):
+        pprint(chunk)
 

@@ -16,16 +16,20 @@ from rag import get_ensemble_retriever
 from reranker.rrf import ReciprocalRankFusion
 
 
-class GraphState(TypedDict):
+class MultiState(TypedDict):
     question: Annotated[str, "Question"]
-    context: Annotated[list[str], "add"]
+    context: Annotated[list[str], add]
     query: Annotated[list[str], add]
     documents: Annotated[list[Document], "Documents"]
     query_count: Annotated[int, "Query Count"]
     answer: Annotated[str, "Answer"]
 
+def init_state(state: MultiState) -> MultiState:
+    
+    return {"context": [], "query": [], "query_count": 0}
+
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
-def retrieve_document(state: GraphState) -> GraphState:
+def retrieve_document(state: MultiState) -> MultiState:
     query_count = state.get("query_count", 0)
     # print(query_count)
     if query_count == 0:
@@ -43,9 +47,9 @@ def retrieve_document(state: GraphState) -> GraphState:
 
     return {"documents": retrieved_docs, "query_count": query_count}
 
-def rerank_document(state: GraphState) -> GraphState:
+def rerank_document(state: MultiState) -> MultiState:
     retrieved_docs = state["documents"]
-    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=1)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=4)
     context = format_context(rrf_docs)
 
     return {"documents": rrf_docs, "context": [context]}
@@ -79,7 +83,7 @@ DECOMPOSE_QUERY_TRANSFORM = (
  
 decomposer = ChatUpstage(model="solar-pro2", temperature=0)
 
-def decompose_query(state: GraphState) -> GraphState:
+def decompose_query(state: MultiState) -> MultiState:
    
     question = state["question"]
     context = state["context"]
@@ -105,7 +109,7 @@ Here are the queries and contexts:
 
 aggregator = ChatUpstage(model="solar-pro2", temperature=0)
 
-def aggregate_answer(state: GraphState) -> GraphState:
+def aggregate_answer(state: MultiState) -> MultiState:
     queries = state["query"]
     contexts = state["context"]
     completed_queries = "\n\n---\n\n".join(queries)
@@ -114,20 +118,22 @@ def aggregate_answer(state: GraphState) -> GraphState:
     answer = aggregator.invoke(prompt)
     return {"answer": answer.content}
 
-def recursive_query_router(state: GraphState) -> Literal["retrieve_document", "aggregate_answer"]:
+def recursive_query_router(state: MultiState) -> Literal["retrieve_document", "aggregate_answer"]:
     query_count = state["query_count"]
     if query_count <= 2:
         return "retrieve_document"
     else:
         return "aggregate_answer"
 
-builder = StateGraph(GraphState)
+builder = StateGraph(MultiState)
+builder.add_node("init_state", init_state)
 builder.add_node("retrieve_document", retrieve_document)
 builder.add_node("rerank_document", rerank_document)
 builder.add_node("decompose_query", decompose_query)
 builder.add_node("aggregate_answer", aggregate_answer)
 
-builder.add_edge(START, "retrieve_document")
+builder.add_edge(START, "init_state")
+builder.add_edge("init_state", "retrieve_document")
 builder.add_edge("retrieve_document", "rerank_document")
 builder.add_edge("rerank_document", "decompose_query")
 builder.add_conditional_edges(
@@ -140,16 +146,12 @@ builder.add_conditional_edges(
 )
 builder.add_edge("aggregate_answer", END)
 
-checkpoint = MemorySaver()
-graph = builder.compile(checkpointer=checkpoint)
-
-def clean_up(config: dict):
-    checkpoint.delete_thread(config["configurable"]["thread_id"])
+multi = builder.compile()
 
 if __name__ == "__main__":
     config = {"configurable": {"thread_id": "1"}}
   
-    for chunk in graph.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
+    for chunk in multi.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
         for node, value in chunk.items():
             if "query_count" in value.keys():
                 print(f"{node}: {value['query_count']}")
@@ -158,4 +160,4 @@ if __name__ == "__main__":
                 print(f"{node}: {value['answer']}")
                 print("-"*100)
 
-    clean_up(config)
+ 
