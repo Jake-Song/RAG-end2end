@@ -157,6 +157,40 @@ def save_markdown(docs) -> str:
         f.write(markdown)
     return markdown
 
+def parse_folder(folder_path):
+    output_folder_path = folder_path / "outputs"
+    image_folder_path = folder_path / "images"
+    
+    if not output_folder_path.exists():
+        output_folder_path.mkdir(parents=True, exist_ok=True)
+    if not image_folder_path.exists():
+        image_folder_path.mkdir(parents=True, exist_ok=True)
+    
+    file_names = set()
+    for path in folder_path.glob("*.pdf"):
+        name = "_".join(path.stem.split("_")[:2])
+        file_names.add(name)
+    
+    for file_name in file_names:
+        json_data_arr = get_json_arr(file_name)
+        flattened = flatten_json(json_data_arr)
+        print("📄 문서 생성 완료")
+        docs = create_docs(flattened)
+        image_prefix = image_folder_path / file_name
+        docs = extract_images(docs, image_prefix)
+        print("📄 이미지 추출 완료")
+        merged = merge_docs(docs)
+        cleaned = remove_metadata(merged)  
+        print("📄 메타데이터 제거 완료")
+
+        output_prefix = output_folder_path / file_name
+        save_docs(cleaned, output_prefix)
+        print("📄 문서 저장 완료")
+
+        save_markdown(cleaned, output_prefix)
+        print("📄 마크다운 저장 완료")
+        print("✅ 모든 작업 완료")
+
 def main():
 
     json_data_arr = get_json_arr(input_file)

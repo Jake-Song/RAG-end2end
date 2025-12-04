@@ -48,6 +48,15 @@ def call_document_parse(input_file, output_file):
     else:
         raise ValueError(f"Unexpected status code {response.status_code}.")
 
+def fetch_folder(folder_path):
+    for path in folder_path.glob("*.pdf"):
+        name = "_".join(path.stem.split("_")[:3])
+        input_file = f"{path.parent}/{name}{path.suffix}"
+        split_pdf(input_file, batch_size)
+        for short_input_file in glob(os.path.splitext(input_file)[0] + "_*.pdf"):
+            short_output_file = os.path.splitext(short_input_file)[0] + ".json"
+            call_document_parse(input_file, short_output_file)
+
 def main():
 
     split_pdf(input_file, batch_size)
