@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Annotated, TypedDict
+from langchain_community.vectorstores.docarray import DocArrayHnswSearch
 from langchain_core.documents import Document
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
 from langchain_community.retrievers import BM25Retriever
@@ -21,25 +22,32 @@ root = Path().resolve()
 embeddings = UpstageEmbeddings(model="embedding-passage")
 DB_URI = os.environ["POSTGRES_URI"]
 
-papers = []
-for path in sorted(Path(root).joinpath("outputs").glob("*_split_documents.pkl")):
-    with open(path, "rb") as f:
-        split_documents = pickle.load(f)
-        for doc in split_documents:
-            doc.metadata["title"] = path.stem.split("_output", 1)[0]
-        papers.append(split_documents)
+from sqlalchemy import create_engine, text
 
-# 모든 문서 병합
-docs = []
-for paper in papers:
-    docs.extend(paper)
+engine = create_engine(DB_URI)
 
-vectorstore = PGVector(
-    embeddings=embeddings,
-    collection_name="SPRI_ALL",
-    connection=DB_URI
-)
-
+def sql_query(title: str) -> list[tuple[str, dict]]:
+    """
+    Sparse Vector Search(BM25등)을 위한 sql 쿼리. 
+    하이브리드 방식(BM25 + PG Vector Search)을 사용하기 
+    때문에 두 방식의 결과를 합치기 위해 사용.
+    """
+    with engine.connect() as conn:
+        # Custom SQL query
+        query = conn.execute(text(f"""
+            SELECT 
+                e.document,
+                e.cmetadata            
+            FROM langchain_pg_embedding e
+            JOIN langchain_pg_collection c ON e.collection_id = c.uuid
+            WHERE c.name = :collection_name
+                AND e.cmetadata->>'title' = :title
+        """), {
+            "collection_name": "SPRI_ALL",
+            "title": title,
+        })
+        
+        return query.fetchall()
 
 class GraphState(TypedDict):
     question: Annotated[str, "Question"]
@@ -49,22 +57,30 @@ class GraphState(TypedDict):
     page_number: Annotated[list[int], "Page Number"]
 
 
+pg_vectorstore = PGVector(
+    embeddings=embeddings,
+    collection_name="SPRI_ALL",
+    connection=DB_URI
+)
+
+result = sql_query("SPRI_2023")
+docs = []
+for r in result:
+    docs.append(Document(page_content=r[0], metadata=r[1]))
+
+# 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
+# BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
+pg_retriever = pg_vectorstore.as_retriever(search_kwargs={"k": 10, "filter": 
+    {"$and": [
+            {"title": {"$eq": "SPRI_2023"}}                
+        ]}
+    })
+bm25_retriever = BM25Retriever.from_documents(docs)
+bm25_retriever.k = 10
+
 # 노드
 def retrieve_document(state: GraphState) -> GraphState:
     latest_question = state["question"]
-
-    # 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
-    # BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
-    pg_retriever = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": 
-        {"$and": [
-                {"title": {"$eq": "SPRI_2023"}},
-                {"page": {"$lte": 9}},
-                
-            ]}
-        })
-    bm25_retriever = BM25Retriever.from_documents(docs)
-    bm25_retriever.k = 10
-
     retrieved_docs_pg = pg_retriever.invoke(latest_question)
     retrieved_docs_bm25 = bm25_retriever.invoke(latest_question)
     retrieved_docs_pg = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_pg)
@@ -127,7 +143,10 @@ if __name__ == "__main__":
     
     config = {"configurable": {"thread_id": "1"}}
     
-    result = app.invoke({"question": "AI 트렌드"}, config=config)
-    pprint(result["answer"])
-    pprint([doc.metadata for doc in result["documents"]])
-    pprint(result["page_number"])
+    # result = app.invoke({"question": "AI 트렌드"}, config=config)
+    # pprint(result["answer"])
+    # pprint([doc.metadata for doc in result["documents"]])
+    # pprint(result["page_number"])
+
+    for chunk in app.stream({"question": "AI 트렌드"}, stream_mode="updates", config=config):
+        pprint(chunk)

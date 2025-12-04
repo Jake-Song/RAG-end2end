@@ -24,9 +24,14 @@ DB_URI = os.environ["POSTGRES_URI"]
 
 from sqlalchemy import create_engine, text
 
-engine = create_engine(DB_URI)
+pg_vectorstore = PGVector(
+    embeddings=embeddings,
+    collection_name="SPRI_TAG",
+    connection=DB_URI
+)
 
-def sql_query(title: str) -> list[tuple[str, dict]]:
+engine = create_engine(DB_URI)
+def sql_query_for_BM25() -> list[tuple[str, dict]]:
     with engine.connect() as conn:
         # Custom SQL query
         query = conn.execute(text(f"""
@@ -36,13 +41,60 @@ def sql_query(title: str) -> list[tuple[str, dict]]:
             FROM langchain_pg_embedding e
             JOIN langchain_pg_collection c ON e.collection_id = c.uuid
             WHERE c.name = :collection_name
-                AND e.cmetadata->>'title' = :title
+                AND NOT (e.cmetadata->'tag') ?| array[:tag1, :tag2]
+                AND e.cmetadata->'tag' ? :tag3
         """), {
-            "collection_name": "SPRI_ALL",
-            "title": title,
+            "collection_name": "SPRI_TAG",
+            "tag1": "AI트렌드",
+            "tag2": "AI인덱스",
+            "tag3": "AI인재"
+            
         })
-        
-        return query.fetchall()
+        result = query.fetchall()
+        arr = []
+        for r in result:
+            arr.append(Document(page_content=r[0], metadata=r[1]))
+        return arr
+
+result_bm25 = sql_query_for_BM25()
+bm25_retriever = BM25Retriever.from_documents(result_bm25)
+bm25_retriever.k = 10
+
+def sql_query_for_PG(query: str) -> list[tuple[str, dict]]:
+    """
+    Langchain 리트리버에 내장된 필터 기능은 배열 타입의 데이터를 지원하지 않음
+    tag 키의 경우 값이 배열이기 때문에 직접 SQL 쿼리를 작성하여 필터링함
+    """
+    query_embedding = embeddings.embed_query(query)
+    with engine.connect() as conn:
+        # Custom SQL query
+        query = conn.execute(text(f"""
+            SELECT 
+                e.document,
+                e.cmetadata,
+                e.embedding <=> CAST(:embedding AS vector) as distance            
+            FROM langchain_pg_embedding e
+            JOIN langchain_pg_collection c ON e.collection_id = c.uuid
+            WHERE c.name = :collection_name
+                AND NOT (e.cmetadata->'tag') ?| array[:tag1, :tag2]
+                AND e.cmetadata->'tag' ? :tag3
+            ORDER BY distance
+            LIMIT :limit
+        """), {
+            "embedding": query_embedding,
+            "collection_name": "SPRI_TAG",
+            "tag1": "AI트렌드",
+            "tag2": "AI인덱스",
+            "tag3": "AI인재",
+            "limit": 10
+        })
+        result = query.fetchall()
+        arr = []
+        for r in result:
+            arr.append(Document(page_content=r[0], metadata=r[1]))
+        return arr
+
+result_pg = sql_query_for_PG("AI 기술")
 
 class GraphState(TypedDict):
     question: Annotated[str, "Question"]
@@ -51,32 +103,10 @@ class GraphState(TypedDict):
     documents: Annotated[list[Document], "Documents"]
     page_number: Annotated[list[int], "Page Number"]
 
-
-pg_vectorstore = PGVector(
-    embeddings=embeddings,
-    collection_name="SPRI_ALL",
-    connection=DB_URI
-)
-
-result = sql_query("SPRI_2023")
-docs = []
-for r in result:
-    docs.append(Document(page_content=r[0], metadata=r[1]))
-
-# 앙상블 리트리버를 사용하여 질문과 관련성 높은 문서 검색
-# BM25(키워드 기반)와 FAISS(의미 기반)를 결합하여 검색 성능 향상
-pg_retriever = pg_vectorstore.as_retriever(search_kwargs={"k": 10, "filter": 
-    {"$and": [
-            {"title": {"$eq": "SPRI_2023"}}                
-        ]}
-    })
-bm25_retriever = BM25Retriever.from_documents(docs)
-bm25_retriever.k = 10
-
 # 노드
 def retrieve_document(state: GraphState) -> GraphState:
     latest_question = state["question"]
-    retrieved_docs_pg = pg_retriever.invoke(latest_question)
+    retrieved_docs_pg = sql_query_for_PG(latest_question)
     retrieved_docs_bm25 = bm25_retriever.invoke(latest_question)
     retrieved_docs_pg = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_pg)
     retrieved_docs_bm25 = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_bm25)
