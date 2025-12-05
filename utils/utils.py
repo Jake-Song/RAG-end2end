@@ -14,6 +14,13 @@ def format_context(retrieved_docs: list[Document]) -> str:
         contexts.append(text)
     return "".join(contexts)
 
+def format_documents_for_rankgpt(documents: list[Document]) -> str:
+    contexts = []
+    for i, doc in enumerate(documents):
+        text = f"### Document #{i+1}<document><id>{doc.metadata['id']}</id><page_content>{doc.page_content}</page_content></document>"
+        contexts.append(text)
+    return "".join(contexts)
+
 if __name__ == "__main__":
     # 테스트 출력
     docs = [
