@@ -185,5 +185,5 @@ graph = router_builder.compile()
 
 if __name__ == "__main__":
     # Invoke
-    result = router_app.invoke({"messages": [{"role": "user", "content": "AI 트렌드 2025와 AI 기술자 임금 동향 설명해줘. 여러 쿼리로 나누어서 정보를 찾아줘"}]})
+    result = graph.invoke({"messages": [{"role": "user", "content": "AI 트렌드 2025와 AI 기술자 임금 동향 설명해줘. 여러 쿼리로 나누어서 정보를 찾아줘"}]})
     print(result["messages"][-1].content)
