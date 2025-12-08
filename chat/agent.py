@@ -2,8 +2,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from rag_hyde_or_multi.rag_hyde_or_multi import app as app_hyde_or_multi
-from rag_single_or_decom.rag_single_or_decom import router_app as router_app
+from rag_hyde_or_multi.rag_hyde_or_multi import graph as graph_hyde_or_multi
+from rag_single_or_decom.rag_single_or_decom import graph as graph_single_or_decom
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -25,7 +25,7 @@ async def chat_endpoint(req: ChatRequest):
     try:
         # Invoke the graph. If it hits an interrupt, it will pause.
         # With a checkpointer, we can inspect the state after invoke returns.
-        result = router_app.invoke(input_state, config=config)
+        result = graph_hyde_or_multi.invoke(input_state, config=config)
         
         # Check if we are in an interrupted state
         if "__interrupt__" in result:

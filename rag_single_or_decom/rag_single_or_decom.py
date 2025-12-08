@@ -181,7 +181,7 @@ router_builder.add_edge("summarizer", "review_answer")
 router_builder.add_edge("review_answer", END)
 
 # Compile the workflow
-router_app = router_builder.compile()
+graph = router_builder.compile()
 
 if __name__ == "__main__":
     # Invoke

@@ -68,13 +68,13 @@ builder.add_edge("hyde", END)
 builder.add_edge("multi", END)
 
 checkpointer = MemorySaver()
-app = builder.compile(checkpointer=checkpointer)
+graph = builder.compile(checkpointer=checkpointer)
 
 if __name__ == "__main__":
     from pprint import pprint
     config = {"configurable": {"thread_id": "1"}}
-    for chunk in app.stream({"messages": [{"role": "user", "content": "AI 트렌드는 무엇인가?"}]}, stream_mode="updates", config=config):
+    for chunk in graph.stream({"messages": [{"role": "user", "content": "AI 트렌드는 무엇인가?"}]}, stream_mode="updates", config=config):
         pprint(chunk)
-    for chunk in app.stream({"messages": [{"role": "user", "content": "상위 AI 논문 인용 순위 3개는 무엇인가?"}]}, stream_mode="updates", config=config):
+    for chunk in graph.stream({"messages": [{"role": "user", "content": "상위 AI 논문 인용 순위 3개는 무엇인가?"}]}, stream_mode="updates", config=config):
         pprint(chunk)
     
