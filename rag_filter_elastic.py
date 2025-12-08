@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Annotated, TypedDict
 from langchain_core.documents import Document
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
-# from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph, START, END
 from utils.utils import format_context
 from elasticsearch import Elasticsearch
@@ -24,7 +23,7 @@ es = Elasticsearch(
     URL,
     api_key=API_KEY
 )
-def hybrid_search(query_text, top_k=5):
+def hybrid_search(query_text: str, top_k: int = 5):
     query_vector = embeddings.embed_query(query_text)
     
     common_filters = {
@@ -32,9 +31,10 @@ def hybrid_search(query_text, top_k=5):
             "should": [ # or
                 {"term": {"metadata.tag": 'AI인재'}},
                 {"term": {"metadata.tag": 'AI스타트업'}},
+                {"term": {"metadata.tag": 'AI인덱스'}},
             ],
             "must_not": [# not
-                {"term": {"metadata.tag": 'AI인덱스'}},
+                {"term": {"metadata.tag": '정부정책책'}},
             ]
         }
     }
@@ -69,15 +69,14 @@ def hybrid_search(query_text, top_k=5):
 
 class GraphState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
-    question: Annotated[str, "Question"]
     context: Annotated[str, "Context"]
-    answer: Annotated[str, "Answer"]
     documents: Annotated[list[Document], "Documents"]
     page_number: Annotated[list[int], "Page Number"]
 
 # 노드
 def retrieve_document(state: GraphState) -> GraphState:
-    latest_question = state["question"]
+    latest_question = state["messages"][-1].content
+    print("latest_question: ", latest_question)
     retrieved_docs_elastic = hybrid_search(latest_question, top_k=5)
     print("length of retrieved_docs_elastic: ", len(retrieved_docs_elastic['hits']['hits']))
     docs = []
@@ -95,7 +94,7 @@ def rerank_document(state: GraphState) -> GraphState:
 # 답변 생성 노드: LLM을 사용하여 검색된 문서를 기반으로 답변 생성
 def llm_answer(state: GraphState) -> GraphState:
     
-    latest_question = state["question"]
+    latest_question = state["messages"][-1].content
     context = state["context"]
 
     llm = ChatUpstage(model="solar-pro2", temperature=0.0)
@@ -118,7 +117,7 @@ def llm_answer(state: GraphState) -> GraphState:
     for doc in state["documents"]:
         page_number.append(doc.metadata["page"])
 
-    return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
+    return {"messages": [response], "documents": state["documents"], "page_number": page_number}
 
 workflow = StateGraph(GraphState)
 workflow.add_node("retrieve", retrieve_document)
@@ -130,7 +129,6 @@ workflow.add_edge("retrieve", "rerank")
 workflow.add_edge("rerank", "llm_answer")
 workflow.add_edge("llm_answer", END)
 
-# memory = InMemorySaver()
 
 app = workflow.compile()
     
@@ -139,10 +137,8 @@ if __name__ == "__main__":
     
     config = {"configurable": {"thread_id": "1"}}
     
-    # result = app.invoke({"question": "AI 트렌드"}, config=config)
-    # pprint(result["answer"])
-    # pprint([doc.metadata for doc in result["documents"]])
-    # pprint(result["page_number"])
-
-    for chunk in app.stream({"question": "AI 트렌드"}, stream_mode="updates", config=config):
-        pprint(chunk)
+    result = app.invoke({"messages": [{"role": "user", "content": "AI 트렌드"}]}, config=config)
+    pprint(result["messages"])
+    
+    # for chunk in app.stream({"messages": [{"role": "user", "content": "AI 트렌드"}]}, stream_mode="values", config=config):
+    #     pprint(chunk)

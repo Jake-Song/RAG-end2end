@@ -11,13 +11,15 @@ from langgraph.checkpoint.memory import MemorySaver
 from utils.utils import format_context
 from rag import get_ensemble_retriever
 from reranker.rrf import ReciprocalRankFusion
+from langchain.messages import AnyMessage
+from langgraph.graph import add_messages
 
 class HyDEState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
     question: Annotated[str, "Question"]
     context: Annotated[list[str], "Context"]
     passage: Annotated[str, "Passage"]
     documents: Annotated[list[Document], "Documents"]
-    answer: Annotated[str, "Answer"]
     is_retrieved: Annotated[bool, "Whether it is retrieved"]
     is_hyde: Annotated[bool, "Whether it is hyde-transformed"]
 
@@ -37,7 +39,8 @@ HYDE_PROMPT = (
 hyde_composer = ChatUpstage(model="solar-pro2", temperature=0)
 
 def init_state(state: HyDEState) -> HyDEState:
-    return {"context": [], "is_retrieved": False, "is_hyde": False}
+    question = state["messages"][-1].content
+    return {"question": question, "context": [], "is_retrieved": False, "is_hyde": False}
 
 def hyde_transform(state: HyDEState) -> HyDEState:
     if state.get("is_retrieved"):
@@ -102,7 +105,7 @@ def rag_answer(state: HyDEState) -> HyDEState:
     context = state["context"]
     prompt = RAG_ANSWER.format(question=question, passage=passage, context=context)
     response = answer_model.invoke(prompt)
-    return {"answer": response.content}
+    return {"messages": [response]}
 
 def recursive_query_router(state: HyDEState) -> Literal["retrieve_document", "aggregate_answer"]:
     is_hyde_transformed = state["is_hyde"]
@@ -141,6 +144,6 @@ if __name__ == "__main__":
     # 넓은 범위의 질문이나 열린 결말의 질문은 부적합함
     # for chunk in hyde.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
     #     print(chunk)
-    for chunk in hyde.stream({"question": "상위 AI 논문 인용 순위 3개는 무엇인가?"}, stream_mode="updates", config=config):
+    for chunk in hyde.stream({"messages": [{"role": "user", "content": "상위 AI 논문 인용 순위 3개는 무엇인가?"}]}, stream_mode="updates", config=config):
         pprint(chunk)
 

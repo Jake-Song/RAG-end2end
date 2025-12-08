@@ -10,6 +10,8 @@ from langchain_core.documents import Document
 from langgraph.graph import START,END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 from operator import add
+from langchain.messages import AnyMessage
+from langgraph.graph import add_messages
 
 from utils.utils import format_context
 from rag import get_ensemble_retriever
@@ -17,16 +19,16 @@ from reranker.rrf import ReciprocalRankFusion
 
 
 class MultiState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
     question: Annotated[str, "Question"]
     context: Annotated[list[str], add]
     query: Annotated[list[str], add]
     documents: Annotated[list[Document], "Documents"]
     query_count: Annotated[int, "Query Count"]
-    answer: Annotated[str, "Answer"]
 
 def init_state(state: MultiState) -> MultiState:
-    
-    return {"context": [], "query": [], "query_count": 0}
+    question = state["messages"][-1].content
+    return {"question": question, "context": [], "query": [], "query_count": 0}
 
 # 문서 검색 노드: 사용자 질문에 관련된 문서를 검색하는 노드
 def retrieve_document(state: MultiState) -> MultiState:
@@ -116,7 +118,7 @@ def aggregate_answer(state: MultiState) -> MultiState:
     completed_contexts = "\n\n---\n\n".join(contexts)
     prompt = AGGREGATE_ANSWER.format(completed_queries=completed_queries, completed_contexts=completed_contexts)
     answer = aggregator.invoke(prompt)
-    return {"answer": answer.content}
+    return {"messages": [answer]}
 
 def recursive_query_router(state: MultiState) -> Literal["retrieve_document", "aggregate_answer"]:
     query_count = state["query_count"]
@@ -151,13 +153,21 @@ multi = builder.compile()
 if __name__ == "__main__":
     config = {"configurable": {"thread_id": "1"}}
   
-    for chunk in multi.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
-        for node, value in chunk.items():
-            if "query_count" in value.keys():
-                print(f"{node}: {value['query_count']}")
-                print("-"*100)
-            if "answer" in value.keys():
-                print(f"{node}: {value['answer']}")
-                print("-"*100)
-
+    # for chunk in multi.stream({"messages": [{"role": "user", "content": "AI 트렌드는 무엇인가?"}]}, stream_mode="updates", config=config):
+    #     for node, value in chunk.items():
+    #         if "query_count" in value.keys():
+    #             print(f"{node}: query_count: {value['query_count']}")
+    #             print("-"*100)
+    #         if "messages" in value.keys():
+    #             print(f"{node}: answer: {value['messages'][-1].content}")
+    #             print("-"*100)
+    
+    for chunk in multi.stream({"messages": [{"role": "user", "content": "AI 트렌드는 무엇인가?"}]}, stream_mode="values", config=config):
+        print("context length: ", len(chunk['context']))
+        print("context: ", chunk['context'])
+        print("-"*100)
+        print("query length: ", len(chunk['query']))
+        print("query: ", chunk['query'])
+        print("-"*100)
+       
  

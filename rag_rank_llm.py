@@ -119,6 +119,7 @@ def rerank_document(state: GraphState) -> GraphState:
     response = rank_llm.invoke(prompt)
 
     ranked_doc_ids = response.ranked_doc_id
+    print("ranked_doc_ids: ", ranked_doc_ids)
     ranked_docs = []
     for doc_id in ranked_doc_ids:
         for doc in retrieved_docs:

@@ -2,17 +2,16 @@ from pydantic import BaseModel, Field
 from langchain_upstage import ChatUpstage
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
-from hyde import hyde
-from multi_step_query import multi
+from rag_hyde import hyde
+from rag_multi_query import multi
 from typing import Annotated, TypedDict
 from typing_extensions import Literal
-
+from langchain.messages import AnyMessage
+from langgraph.graph import add_messages
 
 class State(TypedDict):
-    question: Annotated[str, "Question"]
-    answer: Annotated[str, "Answer"]
+    messages: Annotated[list[AnyMessage], add_messages]
     decision: Annotated[str, "Decision"]
-    query_count: Annotated[int, "Query Count"]
 
 class Route(BaseModel):
     node: Literal["hyde", "multi"] = Field(
@@ -40,9 +39,9 @@ router = llm.with_structured_output(Route)
 # Nodes
 def llm_call_router(state: State):
     """Route the input to the appropriate node"""
-
+    question = state["messages"][-1].content
     # Run the augmented LLM with structured output to serve as routing logic
-    prompt = ROUTE_PROMPT.format(question=state["question"])
+    prompt = ROUTE_PROMPT.format(question=question)
     decision = router.invoke(prompt)
    
     return {"decision": decision.node}
@@ -74,8 +73,8 @@ app = builder.compile(checkpointer=checkpointer)
 if __name__ == "__main__":
     from pprint import pprint
     config = {"configurable": {"thread_id": "1"}}
-    for chunk in app.stream({"question": "AI 트렌드는 무엇인가?"}, stream_mode="updates", config=config):
+    for chunk in app.stream({"messages": [{"role": "user", "content": "AI 트렌드는 무엇인가?"}]}, stream_mode="updates", config=config):
         pprint(chunk)
-    for chunk in app.stream({"question": "상위 AI 논문 인용 순위 3개는 무엇인가?"}, stream_mode="updates", config=config):
+    for chunk in app.stream({"messages": [{"role": "user", "content": "상위 AI 논문 인용 순위 3개는 무엇인가?"}]}, stream_mode="updates", config=config):
         pprint(chunk)
     

@@ -5,6 +5,7 @@ from typing import Annotated, TypedDict, Literal
 from langchain_core.messages import AnyMessage
 from langchain.messages import ToolMessage
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph, START, END
 from scripts.retrieve import load_retriever
 from utils.utils import format_context
@@ -116,7 +117,7 @@ workflow.add_edge("retrieve", "generate_answer")
 workflow.add_edge("generate_answer", END)
 
 # Compile
-graph = workflow.compile()
+graph = workflow.compile(checkpointer=InMemorySaver())
 
 if __name__ == "__main__":
     for chunk in graph.stream(
@@ -127,7 +128,7 @@ if __name__ == "__main__":
                     "content": "AI 인덱스 내용 중 AI 특허 등록",
                 }
             ]
-        },
+        },config={"configurable": {"thread_id": "1"}}
         
     ):
         for node, update in chunk.items():

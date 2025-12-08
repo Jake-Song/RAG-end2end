@@ -18,7 +18,8 @@ from langgraph.graph import StateGraph, START, END
 from utils.utils import format_context
 from reranker.rrf import ReciprocalRankFusion
 import pickle
-
+from dotenv import load_dotenv
+load_dotenv()
 root = Path().resolve()
 
 # 모든 문서 로드
@@ -94,8 +95,10 @@ def tool_node(state: dict):
             if isinstance(feedback["action"], str) and feedback["action"] in valid_actions:
                 if feedback["action"] == "approve" or feedback["action"] == "reject":
                     break
-                if isinstance(feedback["filter"], str) and feedback["filter"] in valid_filters:
+                
+                if isinstance(feedback["filter"], list) and all(isinstance(f, str) and f in valid_filters for f in feedback["filter"]):
                     break
+                
                 else:
                     exception = f"'{feedback['filter']}' is not a valid filter. Please enter filter one of {sorted(valid_filters)}."
             else:
@@ -199,5 +202,6 @@ if __name__ == "__main__":
     resumed = graph.invoke(Command(resume={"action": "recommand", "query": "AI 규제 관련 문서", "filter": ["SPRI_2024"]}), config=config)
     print(resumed["__interrupt__"])
 
-    resumed = graph.invoke(Command(resume={"action": "edit", "query": "AI 규제 관련 문서", "filter": ["SPRI_2024"]}), config=config)
+    resumed = graph.invoke(Command(resume={"action": "edit", "query": "AI 규제 관련 문서", "filter": ["SPRI_2027"]}), config=config)
     print(resumed["__interrupt__"])
+    
