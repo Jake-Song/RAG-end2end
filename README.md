@@ -2,7 +2,16 @@
 
 ## 주요 기능
 
-- **RAG workflow**: Agent, Human Feedback
+- **RAG workflow**
+    - Agent
+        - 기본 RAG Agent [rag_basic](https://github.com/Jake-Song/RAG-end2end/tree/main/rag_basic)
+        - 메타데이터 검색 필터링[rag_filter](https://github.com/Jake-Song/RAG-end2end/tree/main/rag_filter)
+        - 단일 쿼리 / 쿼리 세분화[rag_single_or_decom](https://github.com/Jake-Song/RAG-end2end/tree/main/rag_single_or_decom)
+        - HyDE / Multi Step [rag_hyde_or_multi](https://github.com/Jake-Song/RAG-end2end/tree/main/rag_hyde_or_multi)
+
+    - Human in the Loop
+        - [rag_feedback](https://github.com/Jake-Song/RAG-end2end/tree/main/rag_feedback)
+
 - **이미지 요약**: 이미지를 추출하고 요약 정보를 생성합니다.
 - **텍스트 요약**: 텍스트를 페이지별로 요약합니다.
 - **하이브리드 검색**: BM25(키워드 기반) + FAISS(의미 기반) 

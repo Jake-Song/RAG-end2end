@@ -8,13 +8,16 @@
 3. Validate Human input
 
 ## 워크플로우
-**Rag HyDE / Multi Step  Feedback**
+- **Rag HyDE / Multi Step  Feedback**
+
 ![](rag_hyde_or_multi_feedback.png)
 
-**Rag Single / Decomosed Query Feedback**
+- **Rag Single / Decomosed Query Feedback**
+
 ![](rag_single_or_decom_feedback.png)
 
-**Rag Filter Feedback**
+- **Rag Filter Feedback**
+
 ![](rag_filter_feedback.png)
 
 

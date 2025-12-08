@@ -8,13 +8,16 @@
 - **하이브리드 검색**: BM25(키워드 기반) + FAISS(의미 기반) 
 
 ## 워크플로우
-**HyDE**
+- **HyDE**
+
 ![](hyde.png)
 
-**Multi Step Query**
+- **Multi Step Query**
+
 ![](multi.png)
 
-**Hyde or Multi Step Query Agent**
+- **Hyde or Multi Step Query Agent**
+
 ![](hyde_or_multi.png)
 
 - HyDE, Multi Step Query 그래프를 구현하고 서브 노드로 사용

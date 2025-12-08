@@ -8,7 +8,8 @@
 - **ElasticSearch 검색**
 
 ## 워크플로우
-**Rag Filter Feedback**
+- **Rag Filter Feedback**
+
 ![](rag_filter.png)
 
 ## Rational

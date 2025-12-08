@@ -6,10 +6,12 @@
 - **Self Correct**
 
 ## 워크플로우
-**Rag Agent**
+- **Rag Agent**
+
 ![](rag_agent.png)
 
-**Rag Self Correct**
+- **Rag Self Correct**
+
 ![](rag_self_correct.png)
 
 ## Rational

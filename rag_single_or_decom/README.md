@@ -8,6 +8,8 @@
 - **하이브리드 검색**: BM25(키워드 기반) + FAISS(의미 기반) 
 
 ## 워크플로우
+- **RAG Single or Decompose**
+
 ![](rag_single_or_decom.png)
 
 ## 노드
