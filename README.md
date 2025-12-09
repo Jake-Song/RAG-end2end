@@ -89,4 +89,11 @@ uvicorn chat.feedback:app --reload # rag agent with human feedback
 streamlit run chat/frontend.py
 ```
 
+### 5. Rag Workflow CLI 실행
+```bash
+# example
+python -m rag_basic.rag_agent
+python -m rag_hyde_or_multi.rag_hyde_or_multi
+python -m rag_single_or_decom.rag_single_or_decom
+```
 
