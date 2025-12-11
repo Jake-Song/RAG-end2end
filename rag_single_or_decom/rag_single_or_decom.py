@@ -177,8 +177,7 @@ router_builder.add_conditional_edges(
 )
 router_builder.add_edge("llm_call", "synthesizer")
 router_builder.add_edge("synthesizer", "summarizer")
-router_builder.add_edge("summarizer", "review_answer")
-router_builder.add_edge("review_answer", END)
+router_builder.add_edge("summarizer", END)
 
 # Compile the workflow
 graph = router_builder.compile()
