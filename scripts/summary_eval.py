@@ -73,13 +73,14 @@ def correctness(df: pd.DataFrame) -> dict:
 
 def main():
     df = pd.read_csv(f"{output_path_prefix}_eval.csv")
+    df_correct = pd.read_csv(f"{output_path_prefix}_eval_correct.csv")
     recall_result = recall(df)
     print(f"Recall: {recall_result['recall']}")
     f1_score_result = f1_score(df)
     print(f"F1 Score: {f1_score_result['f1_score']}")
     print(f"Precision: {f1_score_result['precision']}")
     print(f"Recall: {f1_score_result['recall']}")
-    # correctness_result = correctness(df)
-    # print(f"Correctness: {correctness_result['correctness']}")
+    correctness_result = correctness(df_correct)
+    print(f"Correctness: {correctness_result['correctness']}")
 if __name__ == "__main__":
     main()

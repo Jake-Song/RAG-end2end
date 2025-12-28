@@ -1,6 +1,6 @@
 import pandas as pd
 from config import output_path_prefix
-from rag import rag_bot_batch
+from rag_basic.rag import rag_bot_batch
 
 def generate_outputs(df: pd.DataFrame) -> list[dict]:
     inputs = []

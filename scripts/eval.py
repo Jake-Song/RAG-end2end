@@ -4,7 +4,7 @@ langsmith 데이터 평가
 
 import pandas as pd
 from langsmith import Client
-from rag import rag_bot_invoke
+from rag_basic.rag import rag_bot_invoke
 from evaluators.f1_score import f1_score_summary_evaluator
 from config import output_path_prefix, FILE_NAME
 from evaluators.llm_evaluator import CorrectnessEvaluator

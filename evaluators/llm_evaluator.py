@@ -44,7 +44,7 @@ class CorrectnessEvaluator:
         #     CorrectnessGrade, method="json_schema", strict=True
         # )
 
-        self.grader_llm = ChatUpstage(model="solar-pro2", temperature=0.0).with_structured_output(
+        self.grader_llm = ChatOpenAI(model="gpt-5-mini", temperature=0.0).with_structured_output(
             CorrectnessGrade
         )
         self.correctness_instructions = """You are a teacher grading a quiz. You will be given a QUESTION, the GROUND TRUTH (correct) ANSWER, and the STUDENT ANSWER. Here is the grade criteria to follow:

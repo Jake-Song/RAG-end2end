@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 import pickle
 import pandas as pd
 from config import output_path_prefix
-from langchain.schema import Document
+from langchain_core.documents import Document
 import random
 random.seed(42)
 
@@ -95,8 +95,8 @@ def main():
     with open(f"{output_path_prefix}_docs.pkl", "rb") as f:
         docs = pickle.load(f)
 
-    # llm = ChatOpenAI(model_name="gpt-5", temperature=0)
-    llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
+    llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
+    # llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
 
     queries, pairs = generate_prompt(docs, query_count=50)
     print("페이지 짝", pairs)

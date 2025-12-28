@@ -10,6 +10,7 @@ LangGraph RAG 모델
 from typing import Annotated, TypedDict
 from langchain.messages import AIMessage
 from langchain_upstage import UpstageEmbeddings, ChatUpstage
+from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 from langgraph.graph import START,END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
@@ -64,7 +65,8 @@ def llm_answer(state: GraphState) -> GraphState:
     latest_question = state["question"]
     context = state["context"]
 
-    llm = ChatUpstage(model="solar-pro2", temperature=0.0)
+    llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0.0)
+    # llm = ChatUpstage(model="solar-pro2", temperature=0.0)
 
     system_prompt = """You are an assistant for question-answering tasks.
         Use the following pieces of retrieved context to answer the question.

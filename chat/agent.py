@@ -25,7 +25,7 @@ async def chat_endpoint(req: ChatRequest):
     try:
         # Invoke the graph. If it hits an interrupt, it will pause.
         # With a checkpointer, we can inspect the state after invoke returns.
-        result = graph_hyde_or_multi.invoke(input_state, config=config)
+        result = graph_single_or_decom.invoke(input_state, config=config)
         
         # Check if we are in an interrupted state
         if "__interrupt__" in result:
