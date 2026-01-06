@@ -19,6 +19,7 @@ def add_outputs_to_df(df: pd.DataFrame, outputs: list[dict]) -> pd.DataFrame:
     df_eval = df.copy()
     df_eval['outputs.answer'] = [output["answer"] for output in outputs]
     df_eval['outputs.page_number'] = [output["page_number"] for output in outputs]
+    df_eval['retrieved_contexts'] = [output["context"] for output in outputs]
 
     return df_eval
 

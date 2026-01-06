@@ -91,8 +91,7 @@ class CorrectnessEvaluator:
                 prompts.append(prompt)
 
         results = self.grader_llm.batch(prompts)
-        logger.info("correctness: %s", results["correctness"])
-        logger.info("explanation: %s", results["explanation"])
+        
         return results
 
 class RelevanceEvaluator:

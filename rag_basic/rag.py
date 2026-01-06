@@ -64,7 +64,11 @@ def llm_answer(state: GraphState) -> GraphState:
     
     latest_question = state["question"]
     context = state["context"]
-
+    preamble = """
+    The following context is a summary report published by the Software Policy & Research Institute (SPRi). 
+    It discusses the findings of the original 'AI Index 2025' published by Stanford University.
+    Distinguish clearly between the author of this summary and the author of the original report.
+    """
     llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0.0)
     # llm = ChatUpstage(model="solar-pro2", temperature=0.0)
 
@@ -85,7 +89,7 @@ def llm_answer(state: GraphState) -> GraphState:
 
     prompt = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": "Context: " + context},
+        {"role": "user", "content": "Context: " + preamble + "\n" + context},
         {"role": "user", "content": "Question: " + latest_question},
     ]
 
@@ -95,7 +99,7 @@ def llm_answer(state: GraphState) -> GraphState:
     for doc in state["documents"]:
         page_number.append(doc.metadata["page"])
 
-    return {"answer": response.content, "documents": state["documents"], "page_number": page_number}
+    return {"answer": response.content, "context": context, "documents": state["documents"], "page_number": page_number}
 
 workflow = StateGraph(GraphState)
 workflow.add_node("retrieve", retrieve_document)
