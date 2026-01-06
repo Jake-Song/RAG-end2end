@@ -23,7 +23,7 @@ def add_outputs_to_df(df: pd.DataFrame, outputs: list[dict]) -> pd.DataFrame:
     return df_eval
 
 if __name__ == "__main__":
-    df_eval = pd.read_csv(f"{output_path_prefix}_synthetic.csv")
+    df_eval = pd.read_csv(f"{output_path_prefix}_synthetic_single.csv")
     df_eval = df_eval[df_eval['query'].notna()]
     outputs = generate_outputs(df_eval)
     df_eval = add_outputs_to_df(df_eval, outputs)

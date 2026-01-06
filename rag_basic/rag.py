@@ -54,7 +54,7 @@ def retrieve_document(state: GraphState) -> GraphState:
 
 def rerank_document(state: GraphState) -> GraphState:
     retrieved_docs = state["documents"]
-    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=4)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=2)
     context = format_context(rrf_docs)
 
     return {"documents": rrf_docs, "context": context}
@@ -71,7 +71,16 @@ def llm_answer(state: GraphState) -> GraphState:
     system_prompt = """You are an assistant for question-answering tasks.
         Use the following pieces of retrieved context to answer the question.
         If you don't know the answer, just say that you don't know.
-
+        CRITICAL RULES:
+        1. 억 달러 → billion USD: divide by 10, DROP the 억
+        (1,508억 달러 = 150.8 billion USD, NOT 150.8억)
+        
+        2. Every number needs a direct quote from source
+        - No quote? Don't include it.
+        
+        3. Before saying "정보 없음", list what you DID find
+        
+        4. 생성형 AI ≠ 전체 AI — match exact category
     """
 
     prompt = [

@@ -13,13 +13,14 @@ def recall(df: pd.DataFrame) -> dict:
 
     for _, row in df.iterrows():
         # 중복 페이지 제거
-        reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
+        # reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
+        reference_page_number = row["page_number"]
         retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
-        for page in reference_page_number:
-            if page in retrieved_page_number:
-                true_positives += 1
-            else:
-                false_negatives += 1
+       
+        if reference_page_number in retrieved_page_number:
+            true_positives += 1
+        else:
+            false_negatives += 1
 
     print(f"True Positives: {true_positives}, False Negatives: {false_negatives}")
 
@@ -34,21 +35,26 @@ def f1_score(df: pd.DataFrame) -> dict:
 
     for _, row in df.iterrows():
         # 중복 페이지 제거
-        reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
+        # reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
+        reference_page_number = row["page_number"]
         retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
-        
+        # print("reference_page_number : ", reference_page_number)
+        # print("retrieved_page_number : ", retrieved_page_number)
+        # print("-"*100)
         # 정답지 (reference_page_numer)를 찾은 경우 true_positives +1
         # 정답지 (reference_page_numer)를 못 찾은 경우 false_negatives +1, false_positives +1
         # 정답지 (reference_page_numer)를 찾았지만 오답을 찾은 경우 false_positives +1
+
+        # precision
         for page in retrieved_page_number:
-            if page in reference_page_number:
+            if page == reference_page_number:
                 true_positives += 1
             else:
                 false_positives += 1
         
-        for page in reference_page_number:
-            if page not in retrieved_page_number:
-                false_negatives += 1
+        # recall
+        if reference_page_number not in retrieved_page_number:
+            false_negatives += 1
                 
     if true_positives == 0:
         return {"f1_score": 0.0, "precision": 0.0, "recall": 0.0}

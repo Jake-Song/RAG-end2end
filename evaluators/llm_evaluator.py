@@ -71,6 +71,20 @@ class CorrectnessEvaluator:
         ])
         return {"correctness": grade["correct"], "explanation": grade["explanation"]}
 
+    def correctness_batch(self, inputs: list[dict], outputs: list[dict], reference_outputs: list[dict]) -> list[dict]:
+        answers = [
+            f"""\
+            QUESTION: {input['query']}
+            GROUND TRUTH ANSWER: {reference_output['answer']}
+            STUDENT ANSWER: {output['answer']}"""
+            for input, output, reference_output in zip(inputs, outputs, reference_outputs)
+        ]
+        prompts = [{"role": "system", "content": self.correctness_instructions}]
+        for answer in answers:
+            prompts.append({"role": "user", "content": answer})
+        grade = self.grader_llm.batch(prompts)
+        return [{"correctness": grade["correct"], "explanation": grade["explanation"]} for grade in grade]
+
 class RelevanceEvaluator:
     def __init__(self):
         self.grader_llm = ChatOpenAI(model="gpt-5-nano", temperature=0).with_structured_output(
