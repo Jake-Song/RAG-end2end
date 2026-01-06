@@ -9,6 +9,10 @@ LLM as Judge 방식
 from typing_extensions import Annotated, TypedDict
 from langchain_openai import ChatOpenAI
 from langchain_upstage import ChatUpstage
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Grade output schema
 class CorrectnessGrade(TypedDict):
@@ -16,7 +20,7 @@ class CorrectnessGrade(TypedDict):
     # It is useful to put explanations before responses because it forces the model to think through
     # its final response before generating it:
     explanation: Annotated[str, ..., "Explain your reasoning for the score"]
-    correct: Annotated[bool, ..., "True if the answer is correct, False otherwise."]
+    correctness: Annotated[bool, ..., "True if the answer is correct, False otherwise."]
 
 class RelevanceGrade(TypedDict):
     explanation: Annotated[str, ..., "Explain your reasoning for the score"]
@@ -55,35 +59,41 @@ class CorrectnessEvaluator:
         A correctness value of False means that the student's answer does not meet all of the criteria.
         Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct. Avoid simply stating the correct answer at the outset."""
 
-    def correctness(self, inputs: dict, outputs: dict, reference_outputs: dict) -> dict:
-        print("inputs", inputs)
-        print("reference_outputs" + "\n", reference_outputs)
-        print("outputs" + "\n", outputs)
+    def correctness(self, input: dict, output: dict, reference_output: dict) -> dict:
+        logger.info("input: %s", input)
+        logger.info("reference_output: %s", reference_output)
+        logger.info("output: %s", output)
         """An evaluator for RAG answer accuracy"""
         answers = f"""\
-        QUESTION: {inputs['query']}
-        GROUND TRUTH ANSWER: {reference_outputs['answer']}
-        STUDENT ANSWER: {outputs['answer']}"""
+        QUESTION: {input['query']}
+        GROUND TRUTH ANSWER: {reference_output['answer']}
+        STUDENT ANSWER: {output['answer']}"""
         # Run evaluator
         grade = self.grader_llm.invoke([
             {"role": "system", "content": self.correctness_instructions},
             {"role": "user", "content": answers}
         ])
-        return {"correctness": grade["correct"], "explanation": grade["explanation"]}
+        return {"correctness": grade["correctness"], "explanation": grade["explanation"]}
 
-    def correctness_batch(self, inputs: list[dict], outputs: list[dict], reference_outputs: list[dict]) -> list[dict]:
+    def correctness_batch(self, inputs: list[str], outputs: list[str], reference_outputs: list[str]) -> list[CorrectnessGrade]:
+        
         answers = [
             f"""\
-            QUESTION: {input['query']}
-            GROUND TRUTH ANSWER: {reference_output['answer']}
-            STUDENT ANSWER: {output['answer']}"""
+            QUESTION: {input}
+            GROUND TRUTH ANSWER: {reference_output}
+            STUDENT ANSWER: {output}"""
             for input, output, reference_output in zip(inputs, outputs, reference_outputs)
         ]
-        prompts = [{"role": "system", "content": self.correctness_instructions}]
+        prompts = []
         for answer in answers:
-            prompts.append({"role": "user", "content": answer})
-        grade = self.grader_llm.batch(prompts)
-        return [{"correctness": grade["correct"], "explanation": grade["explanation"]} for grade in grade]
+                prompt = [{"role": "system", "content": self.correctness_instructions}, 
+                            {"role": "user", "content": answer}]
+                prompts.append(prompt)
+
+        results = self.grader_llm.batch(prompts)
+        logger.info("correctness: %s", results["correctness"])
+        logger.info("explanation: %s", results["explanation"])
+        return results
 
 class RelevanceEvaluator:
     def __init__(self):
