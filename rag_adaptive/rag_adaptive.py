@@ -133,15 +133,21 @@ def generate(state: State) -> State:
     question = state["question"]
     context = state["context"]
     # RAG generation
+    preamble = """
+    The following context is a summary report published by the Software Policy & Research Institute (SPRi). 
+    It discusses the findings of the original 'AI Index 2025' published by Stanford University.
+    Distinguish clearly between the author of this summary and the author of the original report.
+    """
     GENERATE_PROMPT = """
         You are an assistant for question-answering tasks. 
+        {preamble}
         Use the following pieces of retrieved context to answer the question. 
         If you don't know the answer, just say that you don't know. 
         Use three sentences maximum and keep the answer concise.
         Question: {question} 
         Context: {context}
     """
-    prompt = GENERATE_PROMPT.format(question=question, context=context)
+    prompt = GENERATE_PROMPT.format(question=question, context=context, preamble=preamble)
     generation = llm.invoke([{"role": "user", "content": prompt}])
     return {
         "context": context, 
