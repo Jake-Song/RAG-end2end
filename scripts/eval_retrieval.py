@@ -1,30 +1,84 @@
-"""
-Recall, F1 Score 평가
-검색된(retrieved) 문서 데이터와 정답(answer) 문서 데이터를 비교하여 Retrieval Metric(Recall, F1 Score)을 계산
-Note: 검색된 문서 수와 정답 문서 데이터 수가 같은 경우 Recall과 Precision이 같기 때문에 F1 Score의 의미가 없음.
-"""
-
+from langchain_upstage import UpstageEmbeddings
+from reranker.rrf import ReciprocalRankFusion
+from langchain_community.retrievers import BM25Retriever
+from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
+import os
+import pickle
 import pandas as pd
+import cohere
 from tqdm import tqdm
-from config import output_path_prefix
+from dotenv import load_dotenv
 
-def recall(df: pd.DataFrame) -> dict:
+load_dotenv()
+
+with open("outputs/SPRI_2025_output_split_documents.pkl", "rb") as f:
+    split_documents = pickle.load(f)
+
+embeddings = UpstageEmbeddings(model="embedding-passage")
+co = cohere.Client(os.getenv("COHERE_API_KEY"))
+
+def load_retriever(db_name: str, search_k: int = 10):
+    bm25_retriever = BM25Retriever.from_documents(split_documents)
+    bm25_retriever.k = search_k
+    vectorstore = FAISS.load_local(
+            "faiss_index", 
+            embeddings,
+            db_name,
+            allow_dangerous_deserialization=True  # needed in newer versions
+        )
+    faiss_retriever = vectorstore.as_retriever(search_kwargs={"k": search_k})
+
+    return bm25_retriever, faiss_retriever
+
+
+def retrieve_document(question: str, search_k: int = 10, top_k: int = 20) -> list[Document]:
+    bm25_retriever, faiss_retriever = load_retriever("SPRI_2025_contextual", search_k=search_k)
+    retrieved_docs_faiss = faiss_retriever.invoke(question)
+    retrieved_docs_bm25 = bm25_retriever.invoke(question)
+    retrieved_docs_faiss = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_faiss)
+    retrieved_docs_bm25 = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_bm25)
+    retrieved_docs = retrieved_docs_faiss + retrieved_docs_bm25
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=top_k)
+    return rrf_docs
+
+
+def rerank_document(df: pd.DataFrame, retrieved_docs: list[Document], top_n: int = 5) -> list[Document]:
+    rerank_results = []
+    for i, row in tqdm(df.iterrows(), total=len(df), desc="Reranking documents"):
+        query = row["query"]
+        documents = [doc.page_content for doc in retrieved_docs[i]]
+        rerank_response = co.rerank(
+            model="rerank-multilingual-v3.0", query=query, documents=documents, top_n=top_n
+        )
+        rerank_results.append(rerank_response.results)
+
+    reranked_chunks_arr = []
+    for idx, retrieved_doc in enumerate(retrieved_docs):
+        reranked_chunks = []
+        for result in rerank_results[idx]:
+            reranked_chunks.append(retrieved_doc[result.index])
+        reranked_chunks_arr.append(reranked_chunks)
+
+    return reranked_chunks_arr
+
+def recall(df: pd.DataFrame, retrieved_docs: list[str]) -> dict:
     true_positives = 0
     false_negatives = 0
 
     for i, row in tqdm(df.iterrows(), total=len(df), desc="Calculating recall"):
         # 중복 페이지 제거
         # reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
-        reference_page_number = row["page_number"]
-        retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
+        reference_chunk_id = row["chunk_id"]
+        retrieved_chunk_id = [doc.metadata["chunk_id"] for doc in retrieved_docs[i]]
        
-        if reference_page_number in retrieved_page_number:
+        if reference_chunk_id in retrieved_chunk_id:
             true_positives += 1
         else:
             print("index: ", i)
             print(row["query"])
-            print(row["page_number"])
-            print(row["outputs.page_number"])
+            print(row["chunk_id"])
+            print(retrieved_chunk_id)
             false_negatives += 1
 
     print(f"True Positives: {true_positives}, False Negatives: {false_negatives}")
@@ -32,55 +86,24 @@ def recall(df: pd.DataFrame) -> dict:
     recall = true_positives / (true_positives + false_negatives)
     return {"recall": recall}
 
-def f1_score(df: pd.DataFrame) -> dict:
+def evaluate_retrieval(dataset: pd.DataFrame, rerank: bool = False) -> dict:
+    retrieved_docs = [retrieve_document(
+        dataset.iloc[i]["query"], search_k=10, top_k=20
+    ) for i in tqdm(range(len(dataset)), desc="Retrieving documents")]
     
-    true_positives = 0
-    false_positives = 0
-    false_negatives = 0
-
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Calculating F1 score"):
-        # 중복 페이지 제거
-        # reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
-        reference_page_number = row["page_number"]
-        retrieved_page_number = list({int(page) for page in row["outputs.page_number"].strip("[]").split(",")})
-        # print("reference_page_number : ", reference_page_number)
-        # print("retrieved_page_number : ", retrieved_page_number)
-        # print("-"*100)
-        # 정답지 (reference_page_numer)를 찾은 경우 true_positives +1
-        # 정답지 (reference_page_numer)를 못 찾은 경우 false_negatives +1, false_positives +1
-        # 정답지 (reference_page_numer)를 찾았지만 오답을 찾은 경우 false_positives +1
-
-        # precision
-        for page in retrieved_page_number:
-            if page == reference_page_number:
-                true_positives += 1
-            else:
-                false_positives += 1
-        
-        # recall
-        if reference_page_number not in retrieved_page_number:
-            false_negatives += 1
-                
-    if true_positives == 0:
-        return {"f1_score": 0.0, "precision": 0.0, "recall": 0.0}
-
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-        
-    f1_score = 2 * (precision * recall) / (precision + recall)
-
-    return {"f1_score": f1_score, "precision": precision, "recall": recall}
-
-def main():
-    # df = pd.read_csv(f"{output_path_prefix}_eval.csv")
-    # df_correct = pd.read_csv(f"{output_path_prefix}_eval_correct.csv")
-    df = pd.read_csv(f"{output_path_prefix}_eval_correct_adaptive_20260110_234259.csv")
-    recall_result = recall(df)
-    print(f"Recall: {recall_result['recall']}")
-    f1_score_result = f1_score(df)
-    print(f"F1 Score: {f1_score_result['f1_score']}")
-    print(f"Precision: {f1_score_result['precision']}")
-    print(f"Recall: {f1_score_result['recall']}")
+    if rerank:
+        reranked_docs = rerank_document(dataset, retrieved_docs, top_n=5)
+        recall_score = recall(dataset, reranked_docs)
+    else:
+        recall_score = recall(dataset, retrieved_docs)
     
+    return recall_score
+
 if __name__ == "__main__":
-    main()
+    df = pd.read_csv("outputs/SPRI_2025_output_synthetic_single_chunk.csv")
+
+    print(evaluate_retrieval(df, rerank=False))
+
+
+
+

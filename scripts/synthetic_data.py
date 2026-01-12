@@ -14,32 +14,19 @@ from langchain_core.documents import Document
 import random
 random.seed(42)
 
-def pick_random_pages(docs) -> str:
-    return random.choice(docs).metadata["page"]
-
-def pick_random_page_range(docs, min_doc: int = 0, max_doc: int = 10):
-    # Filter docs where the page number is within the range [min_page, max_page]
-    candidates = [
-        doc for doc in docs 
-        if min_doc <= doc.metadata.get("page", -1) <= max_doc
-    ]
-    
-    if not candidates:
-        return None
-        
-    return random.choice(candidates).metadata["page"]
-
+def pick_random_chunk(split_documents) -> str:
+    return random.choice(split_documents).metadata["chunk_id"]
 
 class SyntheticData(BaseModel):
     """Synthetic data with details."""
     query: str = Field(..., description="The query of the data")
     answer: str = Field(..., description="The answer of the data")
     
-def generate_prompt(docs: list[Document], query_count: int = 10) -> list[list[dict]]:
+def generate_prompt(split_documents: list[Document], query_count: int = 10) -> list[list[dict]]:
     system_prompt = "You are a careful dataset generator for RAG. Only answer from the provided passage."
     
     user_prompt = f"""
-                Task: write 1 QA pair whose answer relates to following documents.
+                Task: write 1 QA pair whose answer relates to following document.
                 Generate query and answers in Korean. include atomic facts in the query
                 DO NOT GENERATE QUERY LIKE FOLLOWING : 
                 - "다음 문서에서 확인되는 3가지 사실은 무엇인가?" 
@@ -53,53 +40,46 @@ def generate_prompt(docs: list[Document], query_count: int = 10) -> list[list[di
             """
 
     queries = []
-    choices = [pick_random_page_range(docs, min_doc=0, max_doc=len(docs)-1) for _ in range(query_count*2)]
-    pairs = [tuple(choices[i:i+2]) for i in range(0, len(choices), 2)]
-    
-    for pair in pairs:
-       
-        doc1 = next(doc.page_content for doc in docs if doc.metadata["page"] == pair[0])
-        doc2 = next(doc.page_content for doc in docs if doc.metadata["page"] == pair[1])
+    chunk_ids = [pick_random_chunk(split_documents) for _ in range(query_count)]
+    for chunk_id in chunk_ids:
+        chunk = next(chunk for chunk in split_documents if chunk.metadata["chunk_id"] == chunk_id)
         prompt = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
-            {"role": "user", 
-            "content": 
-            "## documents : " + "### Document 1" + "\n" + doc1 + "\n" + "### Document 2" + "\n" + doc2}
+            {"role": "user", "content": "## documents : " + "### Document" + "\n" + chunk.page_content + "\n" + "### Chunk ID" + "\n" + str(chunk.metadata["chunk_id"])} 
         ]
         queries.append(prompt)
-    return queries, pairs
+    return queries, chunk_ids
 
 def generate_data(llm: ChatUpstage, queries: list[list[dict]]) -> list[SyntheticData]:
     model_with_structure = llm.with_structured_output(SyntheticData)
     responses = model_with_structure.batch(queries)
     return responses
 
-def save_data(responses: list[SyntheticData], pairs: list[tuple[int, int]]) -> pd.DataFrame:
+def save_data(responses: list[SyntheticData], chunk_ids: list[str]) -> pd.DataFrame:
     arr = []
     
-    for r, pair in zip(responses, pairs):
+    for r, chunk_id in zip(responses, chunk_ids):
            
         obj = {
             "query": r.query,
             "answer": r.answer,
-            "page_number": [pair[0], pair[1]],            
+            "chunk_id": chunk_id,            
         }
         arr.append(obj)
     
     df = pd.DataFrame(arr)
-    df.to_csv(f"{output_path_prefix}_synthetic.csv", index=True)
+    df.to_csv(f"{output_path_prefix}_synthetic_single_chunk.csv", index=False)
     return df
 
 def main():
-    with open(f"{output_path_prefix}_docs.pkl", "rb") as f:
-        docs = pickle.load(f)
+    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+        split_documents = pickle.load(f)
 
     llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
     # llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
 
-    queries, pairs = generate_prompt(docs, query_count=50)
-    print("페이지 짝", pairs)
+    queries, chunk_ids = generate_prompt(split_documents, query_count=100)
     print("쿼리 생성")
     print(f"쿼리 개수: {len(queries)}")
 
@@ -108,7 +88,7 @@ def main():
     print(f"응답 개수: {len(responses)}")
     print("응답 생성")
     
-    save_data(responses, pairs)
+    save_data(responses, chunk_ids)
     print("데이터 저장")
     print("✅ 모든 작업 완료")
 
