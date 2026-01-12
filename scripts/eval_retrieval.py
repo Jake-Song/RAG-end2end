@@ -5,13 +5,14 @@ Note: 검색된 문서 수와 정답 문서 데이터 수가 같은 경우 Recal
 """
 
 import pandas as pd
+from tqdm import tqdm
 from config import output_path_prefix
 
 def recall(df: pd.DataFrame) -> dict:
     true_positives = 0
     false_negatives = 0
 
-    for _, row in df.iterrows():
+    for i, row in tqdm(df.iterrows(), total=len(df), desc="Calculating recall"):
         # 중복 페이지 제거
         # reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
         reference_page_number = row["page_number"]
@@ -20,6 +21,10 @@ def recall(df: pd.DataFrame) -> dict:
         if reference_page_number in retrieved_page_number:
             true_positives += 1
         else:
+            print("index: ", i)
+            print(row["query"])
+            print(row["page_number"])
+            print(row["outputs.page_number"])
             false_negatives += 1
 
     print(f"True Positives: {true_positives}, False Negatives: {false_negatives}")
@@ -33,7 +38,7 @@ def f1_score(df: pd.DataFrame) -> dict:
     false_positives = 0
     false_negatives = 0
 
-    for _, row in df.iterrows():
+    for _, row in tqdm(df.iterrows(), total=len(df), desc="Calculating F1 score"):
         # 중복 페이지 제거
         # reference_page_number = list({int(page) for page in row["page_number"].strip("[]").split(",")})
         reference_page_number = row["page_number"]

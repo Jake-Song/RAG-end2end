@@ -29,7 +29,7 @@ class ReciprocalRankFusion:
 
         merged = {}
         for doc in docs:
-            current_id = doc.metadata['id']
+            current_id = doc.metadata['chunk_id']
 
             new_id = True if current_id not in merged.keys() else False
             bucket = merged.setdefault(current_id, doc.model_copy(deep=True))
