@@ -32,7 +32,7 @@ def load_retriever(db_name: str, search_k: int = 10):
     return bm25_retriever, faiss_retriever
 
 
-def retrieve_document(question: str, search_k: int = 10, top_k: int = 20) -> list[Document]:
+def retrieve_document(question: str, search_k: int = 10, top_k: int = 10) -> list[Document]:
     bm25_retriever, faiss_retriever = load_retriever("SPRI_2025_contextual", search_k=search_k)
     retrieved_docs_faiss = faiss_retriever.invoke(question)
     retrieved_docs_bm25 = bm25_retriever.invoke(question)
@@ -81,28 +81,44 @@ def recall(df: pd.DataFrame, retrieved_docs: list[str]) -> dict:
             print(retrieved_chunk_id)
             false_negatives += 1
 
-    print(f"True Positives: {true_positives}, False Negatives: {false_negatives}")
+    score = true_positives / (true_positives + false_negatives)
+   
+    return {"score": score, "pass_at_n": true_positives}
 
-    recall = true_positives / (true_positives + false_negatives)
-    return {"recall": recall}
-
-def evaluate_retrieval(dataset: pd.DataFrame, rerank: bool = False) -> dict:
-    retrieved_docs = [retrieve_document(
-        dataset.iloc[i]["query"], search_k=10, top_k=20
-    ) for i in tqdm(range(len(dataset)), desc="Retrieving documents")]
+def evaluate_retrieval(dataset: pd.DataFrame, rerank: bool = False):
+    print(f"{'=' * 60}")
+    print(f"Evaluation Results: Contextual Embeddings")
+    print(f"{'=' * 60}\n")
+    k_values = [5, 10, 20]
+    results = {}
+    for k in k_values:
+        print(f"Evaluating Pass@{k} with context retrieval...")
+       
+        retrieved_docs = [retrieve_document(
+            dataset.iloc[i]["query"], search_k=k, top_k=k
+        ) for i in tqdm(range(len(dataset)), desc=f"Retrieving documents Pass@{k}")]
     
-    if rerank:
-        reranked_docs = rerank_document(dataset, retrieved_docs, top_n=5)
-        recall_score = recall(dataset, reranked_docs)
-    else:
-        recall_score = recall(dataset, retrieved_docs)
+        if rerank:
+            reranked_docs = rerank_document(dataset, retrieved_docs, top_n=5)
+            results[k] = recall(dataset, reranked_docs)
+        else:
+            results[k] = recall(dataset, retrieved_docs)
     
-    return recall_score
+    # Print summary table
+    print(f"{'=' * 60}")
+    print(f"{'Metric':<15} {'Pass Rate':<15} {'Score':<15}")
+    print(f"{'-' * 60}")
+    for k in k_values:
+        pass_rate = f"{results[k]['pass_at_n']:.2f}%"
+        score = f"{results[k]['score']:.4f}"
+        print(f"{'Pass@' + str(k):<15} {pass_rate:<15} {score:<15}")
+    print(f"{'=' * 60}\n")
+   
 
 if __name__ == "__main__":
     df = pd.read_csv("outputs/SPRI_2025_output_synthetic_single_chunk.csv")
 
-    print(evaluate_retrieval(df, rerank=False))
+    evaluate_retrieval(df, rerank=False)
 
 
 
