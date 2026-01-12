@@ -12,7 +12,8 @@ import time
 correctness_evaluator = CorrectnessEvaluator()
 
 def main():
-    df_eval = pd.read_csv(f"{output_path_prefix}_eval.csv")
+    # df_eval = pd.read_csv(f"{output_path_prefix}_eval.csv")
+    df_eval = pd.read_csv(f"{output_path_prefix}_eval_multi_hop.csv")
     query_list = df_eval["query"].to_list()
     outputs_answer_list = df_eval["outputs.answer"].to_list()
     answer_list = df_eval["answer"].to_list()
@@ -25,7 +26,8 @@ def main():
     df_eval['correctness'] = [result["correctness"] for result in results]
     df_eval['explanation'] = [result["explanation"] for result in results]
 
-    df_eval.to_csv(f"{output_path_prefix}_eval_correct.csv", index=True)
+    # df_eval.to_csv(f"{output_path_prefix}_eval_correct.csv", index=False)
+    df_eval.to_csv(f"{output_path_prefix}_eval_correct_multi_hop.csv", index=False)
     print("평가 결과 저장 완료")
 if __name__ == "__main__":
     main()
