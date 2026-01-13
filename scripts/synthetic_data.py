@@ -13,6 +13,9 @@ from config import output_path_prefix
 from langchain_core.documents import Document
 import random
 from tqdm import tqdm
+from pathlib import Path
+project_root = Path(__file__).parent.parent
+
 random.seed(42)
 
 def pick_random_chunk(split_documents) -> str:
@@ -74,17 +77,17 @@ def save_data(responses: list[SyntheticData], chunk_ids: list[str]) -> pd.DataFr
         arr.append(obj)
     
     df = pd.DataFrame(arr)
-    df.to_csv(f"{output_path_prefix}_synthetic_single_chunk.csv", index=False)
+    df.to_csv(project_root / "outputs" / f"SPRI_ALL_synthetic_single_chunk.csv", index=False)
     return df
 
 def main():
-    with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+    with open(project_root / "outputs" / "SPRI_ALL_split_documents.pkl", "rb") as f:
         split_documents = pickle.load(f)
 
     llm = ChatOpenAI(model_name="gpt-5-mini", temperature=0)
     # llm = ChatUpstage(model="solar-pro2", temperature=0.0, reasoning_effort="high")
 
-    queries, chunk_ids = generate_prompt(split_documents, query_count=100)
+    queries, chunk_ids = generate_prompt(split_documents, query_count=200)
     print("쿼리 생성")
     print(f"쿼리 개수: {len(queries)}")
 

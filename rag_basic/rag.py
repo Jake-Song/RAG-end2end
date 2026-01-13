@@ -17,16 +17,19 @@ from langgraph.checkpoint.memory import MemorySaver
 from utils.utils import format_context
 from scripts.retrieve import load_retriever
 from reranker.rrf import ReciprocalRankFusion
-from config import output_path_prefix
 import pickle
+from dotenv import load_dotenv
+load_dotenv()
+from pathlib import Path
+project_root = Path(__file__).parent.parent
 
-with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
+with open(project_root / "outputs" / "SPRI_ALL_split_documents.pkl", "rb") as f:
     split_documents = pickle.load(f)
 
 def get_ensemble_retriever():
     embeddings = UpstageEmbeddings(model="embedding-passage")
     bm25_retriever, faiss_retriever = load_retriever(
-        split_documents, embeddings, db_name="SPRI_2025_contextual", kiwi=False, search_k=10
+        split_documents, embeddings, db_name="SPRI_ALL_contextual", kiwi=False, search_k=10
     )
     return bm25_retriever, faiss_retriever
 
