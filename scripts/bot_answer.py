@@ -7,7 +7,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 
 def sample_data(df: pd.DataFrame, sample_size: int = 100) -> pd.DataFrame:
-    return df.sample(n=sample_size)
+    return df.sample(n=sample_size, random_state=42)
 
 def generate_outputs(df: pd.DataFrame, batch_size: int = 10) -> list[dict]:
     queries = df["query"].tolist()
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     df_eval = pd.read_csv(project_root / "outputs" / "SPRI_ALL_synthetic_single_chunk.csv")
     df_eval = df_eval[df_eval['query'].notna()]
 
-    df_sample = sample_data(df_eval, sample_size=10)
+    df_sample = sample_data(df_eval, sample_size=100)
     outputs = generate_outputs(df_sample)
     df_sample = add_outputs_to_df(df_sample, outputs)
     

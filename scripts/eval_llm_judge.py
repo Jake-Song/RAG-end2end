@@ -1,5 +1,6 @@
 import pandas as pd
-from config import output_path_prefix
+from pathlib import Path
+project_root = Path(__file__).parent.parent
 
 def correctness(df: pd.DataFrame) -> dict:
     correctness_true = 0
@@ -13,7 +14,7 @@ def correctness(df: pd.DataFrame) -> dict:
     return {"correctness": correctness}    
 
 def main():
-    df_correct = pd.read_csv(f"{output_path_prefix}_eval_correct_adaptive_20260110_234259.csv")
+    df_correct = pd.read_csv(project_root / "outputs" / "SPRI_ALL_eval_correct.csv")
    
     correctness_result = correctness(df_correct)
     print(f"Correctness: {correctness_result['correctness']}")

@@ -1,0 +1,182 @@
+[
+  {
+    "query": "Which airport is located in Maine, Sacramento International Airport or Knox County Regional Airport?",
+    "answer": "Knox County Regional Airport",
+    "golden_chunk_ids": [
+      "doc_1_chunk_6",
+      "doc_1_chunk_7"
+    ],
+    "doc_idx": 1
+  },
+  {
+    "query": "Peter Hobbs founded the company that is based in what town in Manchester?",
+    "answer": "Failsworth",
+    "golden_chunk_ids": [
+      "doc_2_chunk_2",
+      "doc_2_chunk_3"
+    ],
+    "doc_idx": 2
+  },
+  {
+    "query": "What direction does the river that Austrolebias bellotti are found in flow?",
+    "answer": "north to south",
+    "golden_chunk_ids": [
+      "doc_3_chunk_4",
+      "doc_3_chunk_5"
+    ],
+    "doc_idx": 3
+  },
+  {
+    "query": "Were both Gabriela Mistral and G. K. Chesterton authors?",
+    "answer": "yes",
+    "golden_chunk_ids": [
+      "doc_4_chunk_6",
+      "doc_4_chunk_9"
+    ],
+    "doc_idx": 4
+  },
+  {
+    "query": "What city, other than San Jose del Cabo, is at the the southern tip of Baja California Peninsula and is also encompassed in the Los Cabos Municipality?",
+    "answer": "Cabo San Lucas",
+    "golden_chunk_ids": [
+      "doc_5_chunk_6",
+      "doc_5_chunk_10"
+    ],
+    "doc_idx": 5
+  },
+  {
+    "query": "Sky High starred the actress who is married to which actor?",
+    "answer": "John Travolta",
+    "golden_chunk_ids": [
+      "doc_6_chunk_3",
+      "doc_6_chunk_4"
+    ],
+    "doc_idx": 6
+  },
+  {
+    "query": "What event occured at the Red Bull Arena in Salzburg, Austria and Switzerland in 2008?",
+    "answer": "UEFA Euro 2008",
+    "golden_chunk_ids": [
+      "doc_7_chunk_5",
+      "doc_7_chunk_6"
+    ],
+    "doc_idx": 7
+  },
+  {
+    "query": "Sir Thomas Kyriell was executed after which battle from the Wars of the Roses?",
+    "answer": "Second Battle of St Albans",
+    "golden_chunk_ids": [
+      "doc_8_chunk_6",
+      "doc_8_chunk_9"
+    ],
+    "doc_idx": 8
+  },
+  {
+    "query": "Where is the fruit, part of the flowering plant species in the palm family Arecaceae, most popular?",
+    "answer": "Malta",
+    "golden_chunk_ids": [
+      "doc_9_chunk_3",
+      "doc_9_chunk_9"
+    ],
+    "doc_idx": 9
+  },
+  {
+    "query": "Undertow is a steel spinning roller coaster, built by Maurer S\u00f6hne, located at which oceanfront amusement park in Santa Cruz, California?",
+    "answer": "Santa Cruz Beach Boardwalk",
+    "golden_chunk_ids": [
+      "doc_10_chunk_1",
+      "doc_10_chunk_10"
+    ],
+    "doc_idx": 10
+  },
+  {
+    "query": "An actress nominated for 20 academy awards was featured on a TV series about genealogical research of 12 americans hosted by whom?",
+    "answer": "Professor Henry Louis Gates",
+    "golden_chunk_ids": [
+      "doc_11_chunk_5",
+      "doc_11_chunk_8"
+    ],
+    "doc_idx": 11
+  },
+  {
+    "query": "Which movement was lead by the poet who is included among those David S. Reynolds is an expert on?",
+    "answer": "transcendentalist",
+    "golden_chunk_ids": [
+      "doc_12_chunk_8",
+      "doc_12_chunk_10"
+    ],
+    "doc_idx": 12
+  },
+  {
+    "query": "Al-Battani and Ibn al-Shatir, have which mutual occupation?",
+    "answer": "astronomer",
+    "golden_chunk_ids": [
+      "doc_13_chunk_1",
+      "doc_13_chunk_5"
+    ],
+    "doc_idx": 13
+  },
+  {
+    "query": "\"Lisa's Rival\" is the second episode of \"The Simpsons\"' sixth season, which American actress guest stars as Allison Taylor, a new student at Springfield Elementary School?",
+    "answer": "Winona Ryder",
+    "golden_chunk_ids": [
+      "doc_14_chunk_5",
+      "doc_14_chunk_9"
+    ],
+    "doc_idx": 14
+  },
+  {
+    "query": "Who introduced the Ultimate Boeing 747 gambit in response to the idea that there must be a god if there appears to be a deliberate design in the natural world?",
+    "answer": "Richard Dawkins",
+    "golden_chunk_ids": [
+      "doc_15_chunk_2",
+      "doc_15_chunk_6"
+    ],
+    "doc_idx": 15
+  },
+  {
+    "query": "Which magazine was published weekly vs every weekday, Aeon or Life?",
+    "answer": "Life",
+    "golden_chunk_ids": [
+      "doc_16_chunk_4",
+      "doc_16_chunk_7"
+    ],
+    "doc_idx": 16
+  },
+  {
+    "query": "What is the current name of the club that Agustin Lionel Allione plays for?",
+    "answer": "Esporte Clube Bahia",
+    "golden_chunk_ids": [
+      "doc_17_chunk_8",
+      "doc_17_chunk_10"
+    ],
+    "doc_idx": 17
+  },
+  {
+    "query": "The composer of Massu Engira Masilamani began his musical career when he composed the film score for what movie?",
+    "answer": "\"Aravindhan\"",
+    "golden_chunk_ids": [
+      "doc_18_chunk_4",
+      "doc_18_chunk_5"
+    ],
+    "doc_idx": 18
+  },
+  {
+    "query": "Who has more scope of profession, E. L. Doctorow or Julia Peterkin?",
+    "answer": "Edgar Lawrence \"E. L.\" Doctorow",
+    "golden_chunk_ids": [
+      "doc_19_chunk_1",
+      "doc_19_chunk_10"
+    ],
+    "doc_idx": 19
+  },
+  {
+    "query": "When was the military branch, for which Christian Roy Kaldager served, established?",
+    "answer": "10 November 1944",
+    "golden_chunk_ids": [
+      "doc_20_chunk_8",
+      "doc_20_chunk_10"
+    ],
+    "doc_idx": 20
+  }
+]
