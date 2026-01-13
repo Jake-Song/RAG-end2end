@@ -25,7 +25,9 @@ with open(f"{output_path_prefix}_split_documents.pkl", "rb") as f:
 
 def get_ensemble_retriever():
     embeddings = UpstageEmbeddings(model="embedding-passage")
-    bm25_retriever, faiss_retriever = load_retriever(split_documents, embeddings, kiwi=False, search_k=10)
+    bm25_retriever, faiss_retriever = load_retriever(
+        split_documents, embeddings, db_name="SPRI_2025_contextual", kiwi=False, search_k=10
+    )
     return bm25_retriever, faiss_retriever
 
 
@@ -34,7 +36,7 @@ class GraphState(TypedDict):
     context: Annotated[str, "Context"]
     answer: Annotated[str, "Answer"]
     documents: Annotated[list[Document], "Documents"]
-    page_number: Annotated[list[int], "Page Number"]
+    chunk_ids: Annotated[list[int], "Chunk IDs"]
 
 
 # 노드
@@ -54,7 +56,7 @@ def retrieve_document(state: GraphState) -> GraphState:
 
 def rerank_document(state: GraphState) -> GraphState:
     retrieved_docs = state["documents"]
-    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=2)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=10)
     context = format_context(rrf_docs)
 
     return {"documents": rrf_docs, "context": context}
@@ -95,11 +97,11 @@ def llm_answer(state: GraphState) -> GraphState:
 
     response = llm.invoke(prompt)
 
-    page_number = []
+    chunk_ids = []
     for doc in state["documents"]:
-        page_number.append(doc.metadata["page"])
+        chunk_ids.append(doc.metadata["chunk_id"])
 
-    return {"answer": response.content, "context": context, "documents": state["documents"], "page_number": page_number}
+    return {"answer": response.content, "context": context, "documents": state["documents"], "chunk_ids": chunk_ids}
 
 workflow = StateGraph(GraphState)
 workflow.add_node("retrieve", retrieve_document)
@@ -124,7 +126,7 @@ def rag_bot_invoke(question: str) -> dict:
 
     inputs = {"question": question}
     result = app.invoke(inputs, config)
-    return {'answer': result['answer'], 'documents': result['documents'], 'page_number': result['page_number']}
+    return {'answer': result['answer'], 'documents': result['documents'], 'chunk_ids': result['chunk_ids']}
 
 def rag_bot_batch(questions: list[str]) -> dict:
     from langchain_core.runnables import RunnableConfig
@@ -154,9 +156,10 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         question = sys.argv[1]
         result = rag_bot_invoke(question)
+        
         print(result['answer'], "\n")
         print(result['documents'], "\n")
-        print(result['page_number'], "\n")
+        print(result['chunk_ids'], "\n")
     # 인자가 없는 경우 대화형 루프 모드
     else:
         print("=" * 60)
@@ -177,7 +180,7 @@ if __name__ == "__main__":
 
                 result = rag_bot_invoke(question)
                 print("\nAnswer:", result['answer'])
-                print("\nPage numbers:", result['page_number'])
+                print("\nChunk IDs:", result['chunk_ids'])
                 print("-" * 60)
 
             except KeyboardInterrupt:

@@ -38,7 +38,7 @@ def retriever(query: str) -> list[Document]:
     retrieved_docs_faiss = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_faiss)
     retrieved_docs_bm25 = ReciprocalRankFusion.calculate_rank_score(retrieved_docs_bm25)
     retrieved_docs = retrieved_docs_faiss + retrieved_docs_bm25
-    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=6)
+    rrf_docs = ReciprocalRankFusion.get_rrf_docs(retrieved_docs, cutoff=10)
     context = format_context(rrf_docs)
 
     return {"documents": rrf_docs, "context": context}
@@ -190,7 +190,7 @@ def synthesizer(state: State):
     logger.info("---SYNTHESIZER---")
     # List of completed sections
     filtered_documents = state["filtered_documents"]
-    logger.info(f"Filtered Documents: {[d.metadata['page'] for d in filtered_documents]}")
+    logger.info(f"Filtered Documents: {[d.metadata['chunk_id'] for d in filtered_documents]}")
 
     context = format_context(filtered_documents)  
 

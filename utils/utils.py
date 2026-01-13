@@ -10,7 +10,12 @@ def format_context(retrieved_docs: list[Document]) -> str:
     contexts = []
     for i, doc in enumerate(retrieved_docs):
         #LLM에 들어갈 컨택스트이기 때문에 띄어쓰기 없이 출력.
-        text = f"### Context #{i+1}<document><page_content>{doc.page_content}</page_content><text_summary>{doc.metadata['text_summary'] if len(doc.metadata['text_summary']) > 0 else 'nothing'}</text_summary><image_summary>{doc.metadata['image_summary'] if len(doc.metadata['image_summary']) > 0 else 'nothing'}</image_summary></document>"
+        text = f"### Context #{i+1}<document><page_content>{doc.page_content}</page_content>"
+        if doc.metadata.get('text_summary'):
+            text += f"<text_summary>{doc.metadata['text_summary']}</text_summary>"
+        if doc.metadata.get('image_summary'):
+            text += f"<image_summary>{doc.metadata['image_summary']}</image_summary>"
+        text += "</document>"
         contexts.append(text)
     return "".join(contexts)
 

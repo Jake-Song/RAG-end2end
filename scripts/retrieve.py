@@ -10,7 +10,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.retrievers import BM25Retriever
 import pickle
 
-from config import output_path_prefix, FILE_NAME
+from config import output_path_prefix
 from pathlib import Path
 project_root = Path(__file__).parent.parent
 # 토큰화 함수를 생성
@@ -33,18 +33,18 @@ def create_retriever(split_documents, embeddings, kiwi=False):
     
     return faiss_retriever, bm25_retriever
 
-def save_retriever(split_documents, embeddings):
+def save_retriever(split_documents, embeddings, db_name):
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
-    vectorstore.save_local(f"{project_root}/faiss_index", FILE_NAME)
+    vectorstore.save_local(f"{project_root}/faiss_index", db_name)
 
-def load_retriever(split_documents, embeddings, kiwi=False, search_k=1):
+def load_retriever(split_documents, embeddings, db_name, kiwi=False, search_k=1):
     print(f"{project_root}/faiss_index")
     vectorstore = FAISS.load_local(
         f"{project_root}/faiss_index", 
         embeddings,
-        FILE_NAME,
+        db_name,
         allow_dangerous_deserialization=True  # needed in newer versions
-    )
+    )   
     faiss_retriever = vectorstore.as_retriever(search_kwargs={"k": search_k})
     if kiwi:
         bm25_retriever = BM25Retriever.from_documents(split_documents, preprocess_func=kiwi_tokenize)
@@ -61,7 +61,7 @@ def main():
     # embeddings = OpenAIEmbeddings()    
     embeddings = UpstageEmbeddings(model="embedding-passage")
     create_retriever(split_documents, embeddings, kiwi=False)
-    save_retriever(split_documents, embeddings)
+    save_retriever(split_documents, embeddings, db_name="SPRI_2025_contextual")
     print("✅ 모든 작업 완료")
 if __name__ == "__main__":
     main()
