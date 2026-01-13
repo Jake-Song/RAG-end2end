@@ -75,10 +75,10 @@ def recall(df: pd.DataFrame, retrieved_docs: list[str]) -> dict:
         if reference_chunk_id in retrieved_chunk_id:
             true_positives += 1
         else:
-            print("index: ", i)
-            print(row["query"])
-            print(row["chunk_id"])
-            print(retrieved_chunk_id)
+            # print("index: ", i)
+            # print(row["query"])
+            # print(row["chunk_id"])
+            # print(retrieved_chunk_id)
             false_negatives += 1
 
     score = true_positives / (true_positives + false_negatives)

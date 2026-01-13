@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 project_root = Path(__file__).parent.parent
-llm = ChatOpenAI(model="gpt-5-nano", temperature=0.0)
+llm = ChatOpenAI(model="gpt-5-mini", temperature=0.0)
 embeddings = UpstageEmbeddings(model="embedding-passage")
 
 def prompt_image_caption(docs: list) -> list:
@@ -158,6 +158,8 @@ def post_situate_context(response: list[Document], split_documents: list[Documen
     return split_documents
 
 def save_data(split_documents: list[Document], file_name: str):
+    with open(project_root / "outputs" / "SPRI_2025_output_split_documents.pkl", "wb") as f:
+        pickle.dump(split_documents, f)
     vectorstore = FAISS.from_documents(documents=split_documents, embedding=embeddings)
     vectorstore.save_local("faiss_index", file_name)
 
@@ -165,8 +167,8 @@ if __name__ == "__main__":
     with open("outputs/SPRI_2025_output_docs.pkl", "rb") as f:
         docs = pickle.load(f)
 
-    prompts = prompt_image_caption(docs[:10])
-    inserted_docs = insert_image_description(docs[:10], prompts)
+    prompts = prompt_image_caption(docs)
+    inserted_docs = insert_image_description(docs, prompts)
     pre_split_documents = pre_situate_context(inserted_docs)
     response, post_split_documents = situate_context_batch(inserted_docs, pre_split_documents)
     split_documents = post_situate_context(response, post_split_documents)

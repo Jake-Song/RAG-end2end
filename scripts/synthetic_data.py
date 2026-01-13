@@ -12,6 +12,7 @@ import pandas as pd
 from config import output_path_prefix
 from langchain_core.documents import Document
 import random
+from tqdm import tqdm
 random.seed(42)
 
 def pick_random_chunk(split_documents) -> str:
@@ -41,7 +42,7 @@ def generate_prompt(split_documents: list[Document], query_count: int = 10) -> l
 
     queries = []
     chunk_ids = [pick_random_chunk(split_documents) for _ in range(query_count)]
-    for chunk_id in chunk_ids:
+    for chunk_id in tqdm(chunk_ids, desc="Generating prompts"):
         chunk = next(chunk for chunk in split_documents if chunk.metadata["chunk_id"] == chunk_id)
         prompt = [
             {"role": "system", "content": system_prompt},
@@ -51,9 +52,13 @@ def generate_prompt(split_documents: list[Document], query_count: int = 10) -> l
         queries.append(prompt)
     return queries, chunk_ids
 
-def generate_data(llm: ChatUpstage, queries: list[list[dict]]) -> list[SyntheticData]:
+def generate_data(llm: ChatUpstage, queries: list[list[dict]], batch_size: int = 10) -> list[SyntheticData]:
     model_with_structure = llm.with_structured_output(SyntheticData)
-    responses = model_with_structure.batch(queries)
+    responses = []
+    for i in tqdm(range(0, len(queries), batch_size), desc="Generating synthetic data"):
+        batch = queries[i:i + batch_size]
+        batch_responses = model_with_structure.batch(batch)
+        responses.extend(batch_responses)
     return responses
 
 def save_data(responses: list[SyntheticData], chunk_ids: list[str]) -> pd.DataFrame:
