@@ -30,4 +30,4 @@ if __name__ == "__main__":
     df_eval = df_eval[df_eval['query'].notna()]
     outputs = generate_outputs(df_eval)
     df_eval = add_outputs_to_df(df_eval, outputs)
-    df_eval.to_csv(f"{output_path_prefix}_eval.csv", index=True)
+    df_eval.to_csv(f"{output_path_prefix}_eval.csv", index=False)

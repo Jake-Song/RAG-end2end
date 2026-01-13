@@ -67,8 +67,6 @@ def create_docs(json_data_arr) -> list:
                 "base64_encoding": element.get("base64_encoding", None),
                 "image_id": [],
                 "image_path": [],
-                "text_summary": [],
-                "image_summary": []                
             }
             doc.append(Document(page_content="", metadata=metadata))
         docs.extend(doc)
