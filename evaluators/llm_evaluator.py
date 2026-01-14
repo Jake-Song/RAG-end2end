@@ -11,8 +11,8 @@ from langchain_openai import ChatOpenAI
 from langchain_upstage import ChatUpstage
 import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
 
 # Grade output schema
 class CorrectnessGrade(TypedDict):
@@ -60,9 +60,9 @@ class CorrectnessEvaluator:
         Explain your reasoning in a step-by-step manner to ensure your reasoning and conclusion are correct. Avoid simply stating the correct answer at the outset."""
 
     def correctness(self, input: dict, output: dict, reference_output: dict) -> dict:
-        logger.info("input: %s", input)
-        logger.info("reference_output: %s", reference_output)
-        logger.info("output: %s", output)
+        # logger.info("input: %s", input)
+        # logger.info("reference_output: %s", reference_output)
+        # logger.info("output: %s", output)
         """An evaluator for RAG answer accuracy"""
         answers = f"""\
         QUESTION: {input['query']}

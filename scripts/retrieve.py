@@ -38,7 +38,7 @@ def save_retriever(split_documents, embeddings, db_name):
     vectorstore.save_local(f"{project_root}/faiss_index", db_name)
 
 def load_retriever(split_documents, embeddings, db_name, kiwi=False, search_k=1):
-    print(f"{project_root}/faiss_index")
+    # print(f"{project_root}/faiss_index")
     vectorstore = FAISS.load_local(
         f"{project_root}/faiss_index", 
         embeddings,
